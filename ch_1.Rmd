@@ -10,8 +10,30 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Short-term rentals in British Columbia: Market overview
 
-In 2021, there was an average of TKTK short-term rental listings active each day in the province of British Columbia. (Active listings are those which are not just displayed on a STR platform, but are either reserved or available for reservations, and they are the most straightforward way to assess the size of an STR market.) Setting aside the TKTK listings which were for hotels, B&Bs, and other non-housing properties, this leaves TKTK listings operated out of houses in BC. These listings were operated by TKTK hosts, who collectively earned $TKTK million in revenue (an average of $TKTK per listing, and a median of $TKTK per listing).
+Key findings:
+
+1. Listing inventory is still far below pre-Covid, but revenue, pricing and revenue per listing have mostly recovered.
+2. Strong divergence between big cities and mid-tier/resort cities.
+3. Collapse in year-round STRs during the pandemic, but recovery already started in 2021.
+
+
+
+### Active listings and host revenue
+
+In 2021, there was an average of TKTK short-term rental listings active each day in the province of British Columbia. (Active listings are those which are not just displayed on a STR platform, but are either reserved or available for reservations, and they are the most straightforward way to assess the size of an STR market.) Setting aside the TKTK listings which were for hotels, B&Bs, and other non-housing properties, this leaves TKTK listings operated out of houses in BC. These listings were operated by TKTK hosts, who collectively earned $TKTK million in revenue (an average of $TKTK per listing, and a median of $TKTK per listing). STR listings can be entire-home, private-room, or shared-room, but the overwhelming majority of the STR listings active in 2021 were entire homes (TK%).
 
 These figures are all dramatically lower than the same ones for 2019—before the onset of the Covid-19 pandemic. In 2019, there were TKTK daily active listings operated out of houses in BC (TK% higher than 2021). These listings were operated by TKTK hosts (TK% higher), who collectively earned $TKTK million in revenue (TK% higher), with an average of $TKTK (TK% higher), and a median of $TKTK (TK% higher) per listing.
 
-(In what follows, we present figures from 2021—the most recent complete year, but one which is likely to be a historic low point for the STR market due to the Covid-19 pandemic—and also from 2019—the last full year prior to the pandemic, and hence a plausible baseline for the STR market once the pandemic has subsided.)
+(In what follows, we present figures from 2021—the most recent complete year, but one which is likely to be a historic low point for the STR market due to the Covid-19 pandemic. Where relevant, we also present figures from 2019—the last full year prior to the pandemic, and hence a plausible baseline for the STR market once the pandemic has subsided.)
+
+
+### Home sharers and commercial operators
+
+An important distinction in STR markets is between "home sharing" and "commercial operations". Home sharing occurs when the principal resident of a housing unit rents out part or all of that housing unit on a temporary basis. A family with a spare bedroom that they rent on Airbnb as a private-room listing is an example of home sharing, as is a condo unit whose occupant travels frequently for business, and rents out the entire unit when she is out of town. A commercial operation, by contrast, is an STR listing which is _not_ located in the host's principal residence, and is operated in a more or less full-time fashion. Unlike home sharing arrangements, commercial STRs remove housing units from the long-term market, since each housing unit which is being operated as a full-time STR could instead be housing a long-term resident.
+
+
+
+
+### Growth trends
+
+
