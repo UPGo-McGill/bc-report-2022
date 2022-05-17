@@ -7,7 +7,7 @@ data <- c("units", "rent", "vacancy")
 year <- c(2016, 2017, 2018, 2019, 2020, 2021)
 type <- c("bachelor", "one_bedroom", "two_bedroom", "three_bedroom", "total")
 cities_to_remove <- c("Abbotsford - Mission", "Chilliwack", "Kamloops", "Kelowna",
-            "Nanaimo", "Prince George", "Vancouver", "Victoria")
+            "Nanaimo", "Prince George", "Vancouver", "Victoria", "British Columbia")
 
 
 # Arguments for CMHC import function --------------------------------------------------------
@@ -20,7 +20,11 @@ import_cmhc <- function(region, data, year) {
     mutate(across(type, ~ifelse(.x == "**", NA, .x))) %>%
     mutate(across(type, ~str_remove_all(.x, "\\,"))) %>% 
     mutate(across(type, ~as.numeric(.x))) %>% 
-    mutate(year = year) 
+    #filter(across(type, ~if_all(is.na(.x)))) %>% 
+    mutate(year = year, data = data) %>% 
+    filter(!neighbourhood %in% cities_to_remove)
+  
 }
 
-    
+
+
