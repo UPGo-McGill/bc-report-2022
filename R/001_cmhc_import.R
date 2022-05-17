@@ -1,13 +1,21 @@
+#### CMHC DATA IMPORT ##########################################################
+
+library(tidyverse)
+library(furrr)
+library(future)
+# plan(multisession, workers = 30)
 
 # Arguments for CMHC import function --------------------------------------------------------
 
-region <- c("vancouver", "victoria", "kelowna", "nanaimo", "kamloops", "abbott", "chili",
-           "princegeorge", "bc")
-data <- c("units", "rent", "vacancy")
-year <- c(2016, 2017, 2018, 2019, 2020, 2021)
+files_name <- list.files("data/cmhc/")
+
+regions <- unique(str_remove(files_name, "_.*"))
+data <- unique(str_extract(files_name, "(?<=_).*(?=_)"))
+years <- as.numeric(unique(str_extract(files_name, "\\d{4}(?=.csv)")))
+
 type <- c("bachelor", "one_bedroom", "two_bedroom", "three_bedroom", "total")
 cities_to_remove <- c("Abbotsford - Mission", "Chilliwack", "Kamloops", "Kelowna",
-            "Nanaimo", "Prince George", "Vancouver", "Victoria", "British Columbia")
+                      "Nanaimo", "Prince George", "Vancouver", "Victoria", "British Columbia")
 
 
 # Arguments for CMHC import function --------------------------------------------------------
@@ -21,10 +29,21 @@ import_cmhc <- function(region, data, year) {
     mutate(across(all_of(type), ~str_remove_all(.x, "\\,"))) %>% 
     mutate(across(all_of(type), ~as.numeric(.x))) %>% 
     filter(!if_all(all_of(type), is.na)) %>% 
-    mutate(year = year, data = data) %>% 
+    mutate(year = year, region = region, data = data) %>% 
     filter(!neighbourhood %in% cities_to_remove)
   
 }
 
+cmhc <- 
+  future_map(set_names(data), function(dat) {
+    future_map_dfr(regions, function(region) {
+      future_map_dfr(years, function(year) {
+        capture.output(import_cmhc(region, dat, year))
+      })
+    })
+  })
 
 
+# Save --------------------------------------------------------------------
+
+qsave(cmhc, "output/cmhc.qs")
