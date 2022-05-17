@@ -17,10 +17,10 @@ import_cmhc <- function(region, data, year) {
   read_csv(paste0("data/cmhc/", region, "_", data, "_", year, ".csv"), skip = 2) %>% 
     select(...1, Bachelor, `1 Bedroom`, `2 Bedroom`, `3 Bedroom +`, Total) %>% 
     set_names(c("neighbourhood", "bachelor", "one_bedroom", "two_bedroom", "three_bedroom", "total")) %>% 
-    mutate(across(type, ~ifelse(.x == "**", NA, .x))) %>%
-    mutate(across(type, ~str_remove_all(.x, "\\,"))) %>% 
-    mutate(across(type, ~as.numeric(.x))) %>% 
-    #filter(across(type, ~if_all(is.na(.x)))) %>% 
+    mutate(across(all_of(type), ~ifelse(.x == "**", NA, .x))) %>%
+    mutate(across(all_of(type), ~str_remove_all(.x, "\\,"))) %>% 
+    mutate(across(all_of(type), ~as.numeric(.x))) %>% 
+    filter(!if_all(all_of(type), is.na)) %>% 
     mutate(year = year, data = data) %>% 
     filter(!neighbourhood %in% cities_to_remove)
   
