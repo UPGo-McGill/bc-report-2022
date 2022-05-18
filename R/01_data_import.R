@@ -47,7 +47,8 @@ CSD <- get_census("CA16", regions = list(PR = "59"), level = "CSD",
   st_as_sf()
 
 DA <- get_census("CA16", regions = list(PR = "59"), level = "DA", 
-                 geo_format = "sf") |> 
+                 geo_format = "sf", vectors = c("v_CA16_5750", "v_CA16_5753",
+                                                "v_CA16_5699")) |> 
   st_transform(32610) |> 
   as_tibble() |> 
   st_as_sf()

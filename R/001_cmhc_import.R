@@ -6,7 +6,7 @@ library(future)
 library(qs)
 # plan(multisession, workers = 30)
 
-# Arguments for CMHC import function --------------------------------------------------------
+# Arguments for CMHC import function ---------------------------------------
 
 files_name <- list.files("data/cmhc/")
 
@@ -19,7 +19,7 @@ cities_to_remove <- c("Abbotsford - Mission", "Chilliwack", "Kamloops", "Kelowna
                       "Nanaimo", "Prince George", "Vancouver", "Victoria", "British Columbia")
 
 
-# Arguments for CMHC import function --------------------------------------------------------
+# Arguments for CMHC import function --------------------------------------
 
 import_cmhc <- function(region, data, year) {
   
