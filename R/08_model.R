@@ -9,10 +9,10 @@ library(future)
 library(qs)
 library(sf)
 
-qload("data/data.qsm")
-qload("output/data/data_processed.qsm")
-cmhc <- qread("output/data/cmhc.qs")
-qload("data/geometry.qsm")
+qload("output/data/data_processed.qsm", nthreads = availableCores())
+cmhc <- qread("output/data/cmhc.qs", nthreads = availableCores())
+qload("data/geometry.qsm", nthreads = availableCores())
+
 
 # Known categories --------------------------------------------------------
 
@@ -72,6 +72,7 @@ cmhc_zones <-
   filter(st_is_valid(geometry)) |> 
   st_filter(province)
 
+
 # Add dwelling numbers to zones -------------------------------------------
 
 DA_area <- 
@@ -103,7 +104,8 @@ cmhc_zones <-
          all_industry = all_industry * new_da_area) |> 
   group_by(OBJECTID, NAME_EN) |> 
   summarize(dwellings = sum(dwellings),
-            tourism_employ = sum(tourism, na.rm = TRUE) / sum(all_industry, na.rm = TRUE),
+            tourism_employ = sum(tourism, na.rm = TRUE) / 
+              sum(all_industry, na.rm = TRUE),
             .groups = "drop")
 
 
@@ -135,7 +137,7 @@ vancouver_downtown <-
   pull(OBJECTID)
 
 cmhc_zones <- 
-cmhc_zones |> 
+  cmhc_zones |> 
   mutate(NAME_EN = case_when(OBJECTID == princegeorge_downtown ~ 
                                "Downtown - princegeorge",
                              OBJECTID == victoria_downtown ~ 
@@ -172,30 +174,28 @@ property <-
 # Static year numbers
 
 cmhc_str <-
-  map_dfr(2016:2021, function(year) {
+  map_dfr(2016:2021, function(y) {
+    
     FREH_year <- 
       FREH |> 
-      filter(date < paste0(year + 1, "-01-01"), 
-             date >= paste0(year, "-01-01")) |> 
+      filter(date < paste0(y + 1, "-01-01"), date >= paste0(y, "-01-01")) |> 
       filter(FREH) |> 
       distinct(property_ID) |> 
       pull()
     
     FREH_zones <- 
       property |> 
-      filter(created < paste0(year + 1, "-01-01"), 
-             scraped >= paste0(year, "-01-01")) |> 
+      filter(created < paste0(y + 1, "-01-01"), 
+             scraped >= paste0(y, "-01-01")) |> 
       mutate(FREH = if_else(property_ID %in% FREH_year, TRUE, FALSE)) |> 
-      group_by(cmhc_zone) |> 
-      count(FREH) |> 
-      ungroup() |> 
+      count(cmhc_zone, FREH) |> 
       filter(FREH) |> 
       select(cmhc_zone, FREH = n)
     
     properties_zones <- 
       property |> 
-      filter(created < paste0(year + 1, "-01-01"), 
-             scraped >= paste0(year, "-01-01")) |> 
+      filter(created < paste0(y + 1, "-01-01"), 
+             scraped >= paste0(y, "-01-01")) |> 
       count(cmhc_zone) |> 
       select(cmhc_zone, properties = n)
     
@@ -205,19 +205,19 @@ cmhc_str <-
       left_join(properties_zones, by = "cmhc_zone") |> 
       st_drop_geometry() |> 
       transmute(cmhc_zone,
-                freh_p_dwellings = FREH/dwellings*100,
-                properties_p_dwellings = properties/dwellings*100)
+                freh_p_dwellings = FREH / dwellings * 100,
+                properties_p_dwellings = properties / dwellings * 100)
     
     units_variation <- 
-    cmhc$units |> 
-      filter(year %in% c(!!year, !!year - 1)) |> 
+      cmhc$units |> 
+      filter(year %in% c(y, y - 1)) |> 
       group_by(neighbourhood) |> 
       mutate(units_variation = (total[2] - total[1]) / total[1] * 100) |>
       ungroup() |> 
       select(neighbourhood, units_variation)
     
     cmhc$vacancy |> 
-      filter(year == !!year) |> 
+      filter(year == y) |> 
       select(neighbourhood, total, tier, year) |>
       left_join(str_activities, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(units_variation, by = "neighbourhood")
