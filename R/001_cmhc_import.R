@@ -15,8 +15,10 @@ data <- unique(str_extract(files_name, "(?<=_).*(?=_)"))
 years <- as.numeric(unique(str_extract(files_name, "\\d{4}(?=.csv)")))
 
 type <- c("bachelor", "one_bedroom", "two_bedroom", "three_bedroom", "total")
-cities_to_remove <- c("Abbotsford - Mission", "Chilliwack", "Kamloops", "Kelowna",
-                      "Nanaimo", "Prince George", "Vancouver", "Victoria", "British Columbia")
+cities_to_remove <- c("Abbotsford - Mission", "Abbotsford-Mission", 
+                      "Chilliwack", "Kamloops", "Kelowna", "Nanaimo", 
+                      "Prince George", "Vancouver", "Victoria", 
+                      "British Columbia")
 
 
 # Arguments for CMHC import function --------------------------------------
