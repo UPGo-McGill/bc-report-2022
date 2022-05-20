@@ -293,6 +293,7 @@ cmhc_str <-
       group_by(neighbourhood) |> 
       mutate(units_variation = (total[2] - total[1]) / total[1] * 100) |>
       ungroup() |> 
+      filter(year == y) |> 
       select(neighbourhood, units_variation)
     
     tourism_employment <- 
@@ -300,7 +301,7 @@ cmhc_str <-
       st_drop_geometry() |> 
       transmute(cmhc_zone, tourism_employ = tourism_employ * 100)
     
-    out <- 
+    # out <- 
     cmhc$rent |> 
       filter(year == y) |> 
       select(neighbourhood, year, total) |>
@@ -308,15 +309,17 @@ cmhc_str <-
       left_join(units_variation, by = "neighbourhood") |> 
       left_join(tourism_employment, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(select(cmhc_zones, cmhc_zone, type), 
-                by = c("neighbourhood" = "cmhc_zone"))
-    
+                by = c("neighbourhood" = "cmhc_zone")) |> 
+      # Jambes Bay is a duplicated name (for a match with the spatial data), but 
+      # it's 2 neighbourhoods! So it duplicates in the left join with units variation.
+      distinct()
     
   })
 
-model <- stats::lm(total ~ avg_activity_p_dwellings + 
+model <- stats::lm(total ~ #avg_activity_p_dwellings + 
                      # units_variation +
                      # tourism_employ +
-                     # freh_p_dwellings +
+                     freh_p_dwellings +
                      year +
                      type - 1,
                    data = filter(cmhc_str, !is.na(type)))
