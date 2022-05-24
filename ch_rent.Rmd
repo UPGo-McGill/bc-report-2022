@@ -1,0 +1,54 @@
+---
+title: "ch_rent"
+output: html_document
+---
+
+## The impact of short-term rentals on rents and vacancy rates
+
+<style type="text/css">
+  body{
+  font-family: Futura, Helvetica, Arial;
+}
+</style>
+
+<br>
+
+
+```{r setup, include = FALSE, echo = FALSE}
+
+library(here)
+
+source(here("R", "01_startup.R"))
+
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(include = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+# Function for checking file modifications
+mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
+
+qload(here("output", "/geometry.qsm"))
+qload(here("output", "/data_processed.qsm"))
+cmhc <- qread("output/cmhc.qs")
+
+# Set this to TRUE to output PDF figures
+build_figures <- TRUE
+
+```
+
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
