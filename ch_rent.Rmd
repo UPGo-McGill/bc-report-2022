@@ -37,18 +37,12 @@ build_figures <- TRUE
 
 ```
 
+Like many other Canadian provinces, the housing market in British Columbia has been experiencing large price increases in both rents and property values, and increasingly so since the Covid-19 pandemic. This chapter uses housing data retrieved from the 2016 Canadian census and the Canadian Mortgage and Housing Corporation to determine the impact of commercially-operated short-term rentals on the rent levels in the province's Census Metropolitan Areas (CMA) and Census Agglomerations (CA). 
 
+## Short-term rentals and rents
 
-```{r cars}
-summary(cars)
-```
+There have been multiple studies that have looked at the impact of short-term rentals on housing, more specifically regarding vacancy rates, rents, property values, and displacement. The growth of STRs in the past years has effectively shrunk the size of local rental markets, by converting housing units which otherwise could house residents into tourist accommodations. Additionally, by offering a new revenue stream to homeowners and potentially some tenants who are willing to become part-time home sharers, STRs have increased the economic value of residential properties. Both phenomena would be expected to increase housing costs, since there is less available housing stock, and since the economic potential of the existing stock is increased.
 
-## Including Plots
+While no empirical research exists in a Canadian context to evaluate the impact of STR growth on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in STR listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers appear small, they are being multiplied by STR listing growth rates which have been quite high, so the authors find that the growth of Airbnb is responsible for one fifth of all rent growth and one seventh of housing price growth in the United States during the study period.
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+To answer this question in the Canadian context, we came up with our own methodology. We developed a linear regression model looking at the relationship between average rents and the percentage of frequently-rented entire home per dwellings in CMAs, CAs, and resort towns. We used the October yearly average rents disclosed by the CMHC from 2016 to 2021 for every region in British Columbia with available data. Our models shows a strong positive relationship between the concentration of FREH listings and average rents.
