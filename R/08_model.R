@@ -178,8 +178,13 @@ DA_area <-
   select(ID = GeoUID, dwellings = Dwellings,
          arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
          accomodation = `v_CA16_5753: 72 Accommodation and food services`,
-         all_industry = `v_CA16_5699: All industry categories`) |> 
-  transmute(ID, dwellings, tourism = arts + accomodation, all_industry) |> 
+         all_industry = `v_CA16_5699: All industry categories`,
+         renter = `v_CA16_4838: Renter`,
+         parent_renter = `v_CA16_4836: Total - Private households by tenure - 25% sample data`,
+         dwellings_value_avg = `v_CA16_4896: Average value of dwellings ($)`,
+         movers_5yrs = `v_CA16_6725: Movers`,
+         parent_movers_5yrs = `v_CA16_6719: Total - Mobility status 5 years ago - 25% sample data`) |> 
+  mutate(tourism = arts + accomodation) |> 
   mutate(DA_area = units::drop_units(st_area(geometry)))
 
 cmhc_zones <- 
@@ -199,11 +204,21 @@ cmhc_zones <-
   ungroup() |> 
   mutate(dwellings = dwellings * new_da_area,
          tourism = tourism * new_da_area,
-         all_industry = all_industry * new_da_area) |> 
+         all_industry = all_industry * new_da_area,
+         renter = renter * new_da_area,
+         parent_renter = parent_renter * new_da_area,
+         movers_5yrs = movers_5yrs * new_da_area,
+         parent_movers_5yrs = parent_movers_5yrs * new_da_area
+         ) |> 
   group_by(cmhc_zone, type, CMA_name) |> 
   summarize(dwellings = sum(dwellings),
             tourism_employ = sum(tourism, na.rm = TRUE) / 
               sum(all_industry, na.rm = TRUE),
+            renter_pct = sum(renter, na.rm = TRUE) / 
+              sum(parent_renter, na.rm = TRUE),
+            movers_5yrs_pct = sum(movers_5yrs, na.rm = TRUE) / 
+              sum(parent_movers_5yrs, na.rm = TRUE),
+            dwellings_value_avg = weighted.mean(dwellings_value_avg, new_da_area),
             .groups = "drop")
 
 
@@ -299,7 +314,11 @@ cmhc_str <-
     tourism_employment <- 
       cmhc_zones |> 
       st_drop_geometry() |> 
-      transmute(cmhc_zone, tourism_employ = tourism_employ * 100)
+      transmute(cmhc_zone, 
+                tourism_employ = tourism_employ * 100,
+                renter_pct = renter_pct * 100,
+                movers_5yrs_pct = movers_5yrs_pct * 100,
+                dwellings_value_avg)
     
     # out <- 
     cmhc$rent |> 
@@ -320,17 +339,13 @@ model <- stats::lm(total ~ #avg_activity_p_dwellings +
                      # units_variation +
                      # tourism_employ +
                      freh_p_dwellings +
+                     renter_pct +
+                     # movers_5yrs_pct +
+                     # dwellings_value_avg +
                      year +
                      type - 1,
                    data = filter(cmhc_str, !is.na(type)))
 
 summary(model)
 
-# map(set_names(na.omit(unique(cmhc_str$type))), function(t) {
-#   model <- stats::lm(total ~ avg_activity_p_dwellings + 
-#                        # freh_p_dwellings +
-#                        year,
-#                      data = filter(cmhc_str, type == t))
-#   summary(model)
-# })
 
