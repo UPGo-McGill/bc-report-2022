@@ -10,11 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Short-term rentals in British Columbia: Market overview
 
+TKTK
 Key findings:
 
 1.  Listing inventory is still far below pre-Covid, but revenue, pricing and revenue per listing have mostly recovered.
 2.  Strong divergence between big cities and mid-tier/resort cities.
 3.  Collapse in year-round STRs during the pandemic, but recovery already started in 2021.
+1. Urban STR markets collapsed, and many STR listings returned to the long-term market in Vancouver.
+2. Resort towns saw declines in STR bookings, but increases in nightly prices.
+3. The patterns are consistent with a redistribution of travel destinations from distant cities to nearby resort towns.
 
 ### Active listings and host revenue
 
@@ -32,4 +36,47 @@ One way to distinguish between commercial operators and home sharers is to look 
 
 Another way to distinguish between home sharers and commercial operators is to examine the distribution of revenue among hosts. If revenue is evenly distributed among a large number of hosts earning modest amounts of money, that suggests that home sharing is common. If, by contrast, revenue is concentrated among a small number of high earners, that suggests that most STR activity is conducted by commercial operators, regardless of how many hosts are active on the platform. Across British Columbia, host revenue in 2021 was in fact highly concentrated. The top 10% of hosts earned TKTK% of all revenue, while the top 1% of hosts---just TKTK operators---earned TKTK% of revenue. By contrast, the median host earned \$TKTK in 2021. This pattern suggests that BC has a large number of hosts who are are casual home sharers, but that the STR market is dominated by a much smaller number of commercial operators.
 
-### Growth trends
+Finally, one simple method of identifying commercial STR operators is to identify listings operated by hosts who have multiple listings in operation simultaneously. These "multilistings" by definition cannot be home sharing arrangements, since the host cannot have multiple principal residences. We consider entire-homes to be "multilistings" if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private- room listings operating on the same day. Since nearly all entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR.
+
+In 2021, TKTK% of active listings in British Columbia were multilistings, earning TKTK% of total host revenue. Multilistings had been growing steadily since 2017, both in terms of listings and revenue percentage, until the Covid-19 pandemic, when their proportion dropped somewhat TKTK.
+
+By any of these metrics, BC's STR market is dominated by commercial operators at the expense of home sharers, who have been pushed to the margins of the market. Commercial operators are particularly common in TKTK region type, but there is no part of the province where they are not dominant.
+
+### Growth trends: pre- and post-Covid
+
+Until early 2020, the number of active STR listings in British Columbia was steadily increasing (with the exception of Vancouver, where the 2018 introduction of the City's STR regulations caused a large one-time drop in the number of active listings). Figure TKTK shows the change in active listings and revenue relative to one year earlier, which is a convenient way to remove seasonal variation to identify underlying growth trends. TKTK The figure indicates that, throughout 2017 and the first half of 2018, there was great growth in the revenue earned by hosts. From mid-2018 to late 2019, both active listings and revenue were greater than the year before, albeit with less growth. Both active listings and revenue grew sharply during the 2019 winter season. The pandemic halted BC’s STR market growth, with active listings and revenue declining since March 2020.
+
+Overall, the year-over-year change in average active listings from 2016 to 2017 was TK%, the year-over-year change from 2017 to 2018 was TK%, and the year-over-year change from 2018 to 2019 was TK%. Because of the Covid-19 pandemic, the year-over-year change in active daily listings was TK% in 2020 and TK% in 2021.
+
+
+#### Trend analysis: active listings
+
+The pandemic had a massive impact on STR listings and revenue throughout the province, and trend analysis allows for a more precise estimate of how this impact varied from location to location. Figure TKTK provides a closer look at daily reservations since 2019, comparing the actual trajectory of reservations during the pandemic with what the trajectory of reservations would have been expected to be, based on previous growth in the overall provincial STR market and in each of the sub-markets, but in the absence of the pandemic. (To do this, we use seasonal decomposition to identify the regular seasonal fluctuations in STR activity and separate them from the underlying patterns of growth or decline.) In total, from March 2020 through December 2021, we estimate that there have been TKTK fewer STR nights reserved than would normally have been expected to occur. The TKTK total nights reserved in this time period is only TKTK% of the TKTK nights total that would represent the previous growth trend.
+
+As Figure TKTK suggests, the impact of the pandemic on STR reservations has been highly uneven between different types of communities in the province. TKTK explanation.
+
+
+#### Trend analysis: host revenue
+
+Province-wide, STR host revenue decreased by a staggering TKTK% in 2020 compared to 2019. To offer some perspective, from 2018 to 2019, STR revenue increased by TKTK%. Throughout the May-December period of 2020, moreover, nightly prices have been an average of TKT% lower than expected. Spread across the 916,000 nights reserved during this period, this means that STR operators collectively earned $32.6 million less than they would have on their bookings in the absence of the pandemic. When
+the lower prices on reservations which did occur is combined with the reservations which did not occur, our estimate is that Toronto’s STR hosts lost a total of $361.9 million in revenue between March and December 2020 because of the Covid-19 pandemic.
+
+
+#### Trend analysis: nightly prices
+
+TKTK
+
+
+### Conclusions
+
+TKTK
+Key findings:
+
+1.  Listing inventory is still far below pre-Covid, but revenue, pricing and revenue per listing have mostly recovered.
+2.  Strong divergence between big cities and mid-tier/resort cities.
+3.  Collapse in year-round STRs during the pandemic, but recovery already started in 2021.
+1. Urban STR markets collapsed, and many STR listings returned to the long-term market in Vancouver.
+2. Resort towns saw declines in STR bookings, but increases in nightly prices.
+3. The patterns are consistent with a redistribution of travel destinations from distant cities to nearby resort towns.
+
+
