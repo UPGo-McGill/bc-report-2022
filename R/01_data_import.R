@@ -58,13 +58,64 @@ DA <- get_census("CA16", regions = list(PR = "59"), level = "DA",
                                                 housing_vectors_parent)) |> 
   st_transform(32610) |> 
   as_tibble() |> 
+  st_as_sf() |> 
+  rename(arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
+         accomodation = `v_CA16_5753: 72 Accommodation and food services`,
+         all_industry = `v_CA16_5699: All industry categories`)
+
+CMA <- get_census("CA16", regions = list(PR = "59"), level = "CMA",
+                  geo_format = "sf") |>
+  st_transform(32610) |>
+  as_tibble() |>
   st_as_sf()
 
-CMA <- get_census("CA16", regions = list(PR = "59"), level = "CMA", 
-                  geo_format = "sf") |> 
+# CMA from cancensus is broken. Import the one from the web census
+province <- cancensus::get_census("CA16", regions = list(PR = "59"), 
+                                  level = "PR", geo_format = "sf") |> 
   st_transform(32610) |> 
   as_tibble() |> 
   st_as_sf()
+
+CMA_shapefile <- 
+  read_sf("data/shapefiles/lcma000b16a_e.shp") |> 
+  st_transform(32610) |>
+  st_filter(province)
+
+CMA_shapefile <- 
+  CMA_shapefile |> 
+  transmute(GeoUID = CMAPUID,
+            type = case_when(CMATYPE == "B" ~ "CMA",
+                             CMATYPE == "D" ~ "CA",
+                             CMATYPE == "K" ~ "CA"))
+
+CMA <- 
+  CMA |> 
+  st_drop_geometry() |> 
+  left_join(CMA_shapefile, by = "GeoUID") |> 
+  select(-Type) |> 
+  st_as_sf() |> 
+  st_transform(32610)
+
+# A lot of NAs from the employment vectors at the CMA level. Get them from DA
+CMA_tourism_industry <- 
+  DA |> 
+  st_drop_geometry() |> 
+  group_by(CMA_UID) |> 
+  summarize(arts = sum(arts, na.rm = TRUE),
+            accomodation = sum(accomodation, na.rm = TRUE),
+            all_industry = sum(all_industry, na.rm = TRUE),
+            .groups = "keep") |> 
+  summarize(tourism = (arts + accomodation) / all_industry,
+            .groups = "drop")
+
+CMA <- 
+  CMA |> 
+  left_join(CMA_tourism_industry, by = c("GeoUID" = "CMA_UID")) |> 
+  mutate(tier = if_else(tourism >= 0.12, "RES", type)) |> 
+  select(-type)
+
+# Save --------------------------------------------------------------------
+
 
 qs::qsavem(CT, CMA, CSD, DA, file = "data/geometry.qsm", 
            nthreads = availableCores())

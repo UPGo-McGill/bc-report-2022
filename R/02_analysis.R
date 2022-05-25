@@ -109,8 +109,8 @@ daily <-
 
 property <- 
   property |> 
-  select(property_ID:scraped, housing:longitude, city, ab_property:ab_host,
-         ha_property:ha_host, CSDUID, DAUID, reg_type)
+  select(property_ID:scraped, housing:longitude, bedrooms, city, 
+         ab_property:ab_host, ha_property:ha_host, CSDUID, DAUID, reg_type)
 
 daily <- 
   daily |> 
@@ -132,7 +132,25 @@ property_LTM <-
   right_join(property_LTM)
 
 
+# Add tier to property ----------------------------------------------------
+
+# Attach CMHC zone to properties ------------------------------------------
+
+# Get the row number of the according CMHC zones (st_intersects twice as fast)
+row <-
+  property |>
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+  st_transform(32610) |>
+  st_intersects(select(CMA, type), sparse = TRUE) |>
+  as.numeric()
+
+property$tier <-
+  map_chr(row, ~{if (is.na(.x)) return(NA) else CMA$tier[.x]})
+
+property <- mutate(property, tier = if_else(is.na(tier), "NU", tier))
+
+
 # Save output -------------------------------------------------------------
 
 qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
-           file = "data/data_processed.qsm", nthreads = availableCores())
+           file = "output/data_processed.qsm", nthreads = availableCores())

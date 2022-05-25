@@ -9,49 +9,16 @@ library(future)
 library(qs)
 library(sf)
 
-qload("output/data/data_processed.qsm", nthreads = availableCores())
-cmhc <- qread("output/data/cmhc.qs", nthreads = availableCores())
+qload("output/data_processed.qsm", nthreads = availableCores())
+cmhc <- qread("output/cmhc.qs", nthreads = availableCores())
 qload("data/geometry.qsm", nthreads = availableCores())
 
 
-# Known categories --------------------------------------------------------
-
-top_tier <- c("Vancouver", "Victoria", "Richmond", "Burnaby",
-              "Surrey", "North Vancouver", "Saanich", "Coquitlam",
-              "West Vancouver")
-
-mid_tier <- c("Kelowna", "Penticton", "Vernon", "Nanaimo", "Cranbrook")
-
-resort <- c("Parksville", "Qualicum Beach", "Courtenay", "Tofino", "Ucluelet", 
-            "Osoyoos", "Oliver", "Revelstoke", "Golden", "Valemount", 
-            "Clearwater", "Smithers", "Invermere", "Radium Hot Springs", 
-            "Nelson", "Fernie", "Squamish", "Whistler")
-
-resource <- c("Prince George", "Fort St. John", "Prince Rupert", "Kamloops")
-
-
-# Add categories to the cmhc data -----------------------------------------
+# Update CMHC names to fit with zones -------------------------------------
 
 cmhc <- 
   map(cmhc, function(dat) {
     dat |> 
-      mutate(tier = 
-               case_when(str_detect(neighbourhood, 
-                                    paste(top_tier, collapse = "|")) ~ "Top-tier",
-                         str_detect(neighbourhood,
-                                    paste(mid_tier, collapse = "|")) ~ "Mid-tier",
-                         str_detect(neighbourhood,
-                                    paste(resort, collapse = "|")) ~ "Resort",
-                         str_detect(neighbourhood,
-                                    paste(resource, collapse = "|")) ~ "Resource",
-                         region == "nanaimo" ~ "Mid-tier",
-                         region == "kamloops" ~ "Resource",
-                         region == "kelowna" ~ "Mid-tier",
-                         region == "princegeorge" ~ "Resource",
-                         region == "vancouver" ~ "Top-tier",
-                         region == "victoria" ~ "Top-tier",
-                         # Abbott = similar population to Kelowna
-                         region == "abbott" ~ "Mid-tier")) |> 
       mutate(neighbourhood = if_else(neighbourhood == "Downtown", 
                             paste0("Downtown - ", region), neighbourhood)) |> 
       # Fixing some neighbourhood names to fit with the cmhc zones
@@ -65,25 +32,6 @@ cmhc <-
 
 
 # Import CMHC zones -------------------------------------------------------
-
-province <- cancensus::get_census("CA16", regions = list(PR = "59"), 
-                                  level = "PR", geo_format = "sf") |> 
-  st_transform(32610) |> 
-  as_tibble() |> 
-  st_as_sf()
-
-CMA_shapefile <- 
-  read_sf("data/shapefiles/lcma000b16a_e.shp") |> 
-  st_transform(32610) |>
-  st_filter(province)
-
-CMA_shapefile <- 
-  CMA_shapefile |> 
-  transmute(CMAUID,
-            name = CMANAME,
-            type = case_when(CMATYPE == "B" ~ "CMA",
-                             CMATYPE == "D" ~ "CA",
-                             CMATYPE == "K" ~ "CA"))
 
 cmhc_zones <- 
   read_sf("data/shapefiles/CMHC_NBHD_2016-mercWGS84.shp") |> 
@@ -226,39 +174,28 @@ cmhc_zones <-
 
 cmhc_zones <- 
   cmhc_zones |> 
-  mutate(type = if_else(tourism_employ >= 0.125, "RES", type))
+  mutate(type = if_else(tourism_employ >= 0.125, "RES", type),
+         # Summerland is an enclave of Penticton, a RES
+         type = if_else(cmhc_zone == "Summerland", "RES", type))
 
 
 # Attach CMHC zone to properties ------------------------------------------
 
 # Get the row number of the according CMHC zones (st_intersects twice as fast)
-row <- 
-  property |> 
-  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
-  st_transform(32610) |> 
-  st_intersects(select(cmhc_zones, cmhc = cmhc_zone), sparse = TRUE) |> 
+row <-
+  property |>
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+  st_transform(32610) |>
+  st_intersects(select(cmhc_zones, cmhc = cmhc_zone), sparse = TRUE) |>
   as.numeric()
 
 # A bunch have NA cmhc_zone, as there are no CMHC zones on all the territory
-property$cmhc_zone <- 
+property$cmhc_zone <-
   map_chr(row, ~{if (is.na(.x)) return(NA) else cmhc_zones$cmhc_zone[.x]})
 
-property$tier <- 
-  map_chr(row, ~{if (is.na(.x)) return(NA) else cmhc_zones$type[.x]})
-
-# reg_type are already same as tier, but let's join cmhc zones name with it and 
-# take the latter data.
-# property <- 
-#   property |> 
-#   filter(reg_type != "Other") |>
-# left_join(distinct(select(cmhc$rent, neighbourhood, tier)), 
-#           by = c("cmhc_zone" = "neighbourhood")) |>
-# mutate(reg_type = if_else(is.na(tier), reg_type, tier)) |> 
-# select(-tier)
+property <- filter(property, housing)
 
 # Add a STR activity indicator --------------------------------------------
-
-# Static year numbers
 
 cmhc_str <-
   map_dfr(2016:2021, function(y) {
@@ -323,7 +260,7 @@ cmhc_str <-
     # out <- 
     cmhc$rent |> 
       filter(year == y) |> 
-      select(neighbourhood, year, total) |>
+      select(neighbourhood, year, total_rent = total) |>
       left_join(str_activities, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(units_variation, by = "neighbourhood") |> 
       left_join(tourism_employment, by = c("neighbourhood" = "cmhc_zone")) |> 
@@ -335,17 +272,43 @@ cmhc_str <-
     
   })
 
-model <- stats::lm(total ~ #avg_activity_p_dwellings + 
-                     # units_variation +
-                     # tourism_employ +
-                     freh_p_dwellings +
-                     renter_pct +
-                     # movers_5yrs_pct +
-                     # dwellings_value_avg +
-                     year +
-                     type - 1,
-                   data = filter(cmhc_str, !is.na(type)))
+model <- lm(total_rent ~ #avg_activity_p_dwellings + 
+              # units_variation +
+              # tourism_employ +
+              freh_p_dwellings +
+              renter_pct +
+              # movers_5yrs_pct +
+              # dwellings_value_avg +
+              year +
+              type - 1,
+            data = filter(cmhc_str, !is.na(type)))
 
 summary(model)
 
+# Rent in zones -----------------------------------------------------------
+
+
+cmhc_str |> 
+  filter(!is.na(freh_p_dwellings)) |> 
+  group_by(type, year) |> 
+  summarize(freh_p_dwellings = mean(freh_p_dwellings, na.rm = TRUE)) |> 
+  ggplot(aes(year, freh_p_dwellings, color = type)) +
+  geom_line()
+
+
+# Prepare the FREH graph grouped by types ---------------------------------
+
+# property_FREH_year <- 
+#   FREH |> 
+#   filter(FREH) |> 
+#   mutate(date = year(date)) |> 
+#   distinct(property_ID, date)
+
+
+
+# Save --------------------------------------------------------------------
+
+qsavem(model, cmhc_str, file = "output/model_chapter.qsm")
+qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
+           file = "output/data_processed.qsm", nthreads = availableCores())
 
