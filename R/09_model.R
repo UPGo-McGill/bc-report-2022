@@ -106,6 +106,14 @@ cmhc_zones <-
   select(-area, -area_percentage, -name) |> 
   ungroup()
 
+# Add tier to cmhc data
+cmhc <- 
+  map(cmhc, function(dat) {
+    dat |> 
+      left_join(st_drop_geometry(cmhc_zones), 
+                by = c("neighbourhood" = "cmhc_zone"))
+  })
+
 # Add dwelling numbers to zones -------------------------------------------
 
 DA_area <- 
@@ -267,39 +275,10 @@ model <- lm(total_rent ~ #avg_activity_p_dwellings +
 summary(model)
 
 
-# Rent in zones -----------------------------------------------------------
-
-cmhc_str |> 
-  filter(!is.na(freh_p_dwellings)) |> 
-  mutate(year = year + 2016) |> 
-  group_by(tier, year) |> 
-  summarize(freh_p_dwellings = mean(freh_p_dwellings, na.rm = TRUE)) |> 
-  ggplot(aes(year, freh_p_dwellings, color = tier)) +
-  geom_line()
-
-
-daily |> 
-  filter(year(date) >= 2016) |> 
-  filter(FREH_3 > 0.5) |> 
-  left_join(select(property, property_ID, cmhc_zone, tier), by = "property_ID") |> 
-  count(date, tier) |> 
-  ggplot(aes(date, n, color = tier)) +
-  geom_line()
-  
-
-# Prepare the FREH graph grouped by types ---------------------------------
-
-# property_FREH_year <- 
-#   FREH |> 
-#   filter(FREH) |> 
-#   mutate(date = year(date)) |> 
-#   distinct(property_ID, date)
-
-
-
 # Save --------------------------------------------------------------------
 
-qsavem(model, cmhc_str, file = "output/model_chapter.qsm")
+qsavem(model, cmhc_str, cmhc_zones, cmhc, file = "output/model_chapter.qsm")
+# Save cmhc_zone in the property df
 qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
            file = "output/data_processed.qsm", nthreads = availableCores())
 
