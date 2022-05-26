@@ -150,6 +150,14 @@ property$tier <-
 property <- mutate(property, tier = if_else(is.na(tier), "NU", tier))
 
 
+# Add tier to daily, and delete the IDs not in property -------------------
+
+daily <- 
+  daily |> 
+  filter(property_ID %in% property$property_ID) |> 
+  left_join(select(property, property_ID, tier), by = "property_ID")
+
+
 # Save output -------------------------------------------------------------
 
 qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
