@@ -141,11 +141,11 @@ row <-
   property |>
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
   st_transform(32610) |>
-  st_intersects(select(CMA, type), sparse = TRUE) |>
+  st_intersects(select(CSD, tier), sparse = TRUE) |>
   as.numeric()
 
 property$tier <-
-  map_chr(row, ~{if (is.na(.x)) return(NA) else CMA$tier[.x]})
+  map_chr(row, ~{if (is.na(.x)) return(NA) else CSD$tier[.x]})
 
 property <- mutate(property, tier = if_else(is.na(tier), "NU", tier))
 

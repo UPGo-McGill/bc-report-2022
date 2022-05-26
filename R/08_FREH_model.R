@@ -142,7 +142,7 @@ model_12_test <- glm(FREH ~ cum_R + cum_AR + month_since_created + month + tier 
 probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 mean(predicted_classes_12 == test_data_12$FREH)
-# Outcome: 0.87
+# Outcome: 0.84
 
 
 # Model based on last 3 months --------------------------------------------
@@ -162,7 +162,7 @@ after_one_year <-
 
 # Fit models and apply to listings > 2 months -----------------------------
 
-model_3 <- glm(FREH ~ R_3 + AR_3 + month, data = after_one_year,
+model_3 <- glm(FREH ~ R_3 + AR_3 + month + tier - 1, data = after_one_year,
                family = binomial)
 
 model_3_results <-
@@ -200,19 +200,42 @@ train_data_3 <- after_one_year[training_samples_3, ]
 test_data_3 <- after_one_year[-training_samples_3, ]
 
 # Fit the model
-model_3_test <- glm(FREH ~ R_3 + AR_3 + month + tier - 1, data = train_data_3,
+model_3_test <- glm(FREH ~ R_3 + AR_3 + month, data = train_data_3,
                           family = binomial)
 
 # Test models
 probabilities_3 <- model_3_test %>% predict(test_data_3, type = "response")
 predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 mean(predicted_classes_3 == test_data_3$FREH)
-# Outcome: 0.860
+# Outcome: 0.795
+
+# One model per tier
+map(set_names(unique(train_data_3$tier)), ~{
+  
+  after_one_year_filtered <- 
+    after_one_year |> 
+    filter(tier == .x)
+  
+  print(nrow(after_one_year_filtered))
+  
+  training_samples <-
+    after_one_year_filtered$FREH %>% createDataPartition(p = 0.80, list = FALSE)
+  
+  train_data <- after_one_year_filtered[training_samples_3, ]
+  test_data <- after_one_year_filtered[-training_samples_3, ]
+  
+  model <- glm(FREH ~ R_3 + AR_3 + month, data = train_data,
+               family = binomial)
+  
+  probabilities_3 <- model %>% predict(test_data, type = "response")
+  predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
+  mean(predicted_classes_3 == test_data$FREH)
+})
 
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/str_processed.qsm",
+qsavem(property, daily, GH, file = "output/data_processed.qsm",
        nthreads = availableCores())
 
 qsavem(FREH, monthly, first_year, model_12, model_12_results, after_one_year,

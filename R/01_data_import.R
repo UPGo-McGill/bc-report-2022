@@ -84,6 +84,7 @@ CMA_shapefile <-
 CMA_shapefile <- 
   CMA_shapefile |> 
   transmute(GeoUID = CMAPUID,
+            CMANAME,
             type = case_when(CMATYPE == "B" ~ "CMA",
                              CMATYPE == "D" ~ "CA",
                              CMATYPE == "K" ~ "CA"))
@@ -114,8 +115,40 @@ CMA <-
   mutate(tier = if_else(tourism >= 0.12, "RES", type)) |> 
   select(-type)
 
+CSD <- get_census("CA16", regions = list(PR = "59"), level = "CSD", 
+                  geo_format = "sf", vectors = c("v_CA16_5750", "v_CA16_5753",
+                                                 "v_CA16_5699")) |> 
+  st_transform(32610) |> 
+  as_tibble() |> 
+  st_as_sf() |> 
+  select(GeoUID,
+         households = Households,
+         dwellings = Dwellings,
+         population = Population,
+         name,
+         CMA_UID,
+         arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
+         accomodation = `v_CA16_5753: 72 Accommodation and food services`,
+         all_industry = `v_CA16_5699: All industry categories`)
+
+CSD <- 
+  CSD |> 
+  # Add CMA tiers already calculated
+  left_join(select(st_drop_geometry(CMA), GeoUID, tier), 
+            by = c("CMA_UID" = "GeoUID")) |> 
+  # Add central cities
+  mutate(tier = if_else(name %in% c("Vancouver (CY)", "Abbotsford (CY)",
+                                    "Victoria (CY)"), "CC", tier)) |> 
+  # Add RES to the RES to CSDs
+  mutate(tier = if_else(is.na(tier) &
+                          (arts + accomodation) / all_industry >= 0.12,
+                        "RES", tier)) |> 
+  # The rest is non urban
+  mutate(tier = if_else(is.na(tier), "NU", tier))
+
+
 # Save --------------------------------------------------------------------
 
 
-qs::qsavem(CT, CMA, CSD, DA, file = "data/geometry.qsm", 
+qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "data/geometry.qsm", 
            nthreads = availableCores())

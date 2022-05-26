@@ -94,50 +94,35 @@ cmhc_zones <-
   cmhc_zones |> 
   filter(cmhc_zone %in% unique(cmhc$rent$neighbourhood))
 
-# Sometimes the zones are just a bit different and overlap (like Core Area of
-# Kelowna overlapping on Penticton and Vernon), causing the cmhc zones to 
-# be duplicated.
-cmhc_zones_cma_ca <-
+# Add CSD's tier to the cmhc zone. Take the tier of the CSD that's taking
+# the most space in the zone
+cmhc_zones <-
   cmhc_zones |> 
   mutate(area = units::drop_units(st_area(geometry))) |> 
-  st_intersection(select(CMA_shapefile, type, CMA_name = name)) |> 
+  st_intersection(select(CSD, name, tier)) |> 
   mutate(area_percentage = units::drop_units(st_area(geometry)) / area) |> 
-  filter(area_percentage > 0.95) |> 
-  select(-area, -area_percentage)
-
-
-cmhc_zones <- 
-  cmhc_zones |> 
-  filter(!cmhc_zone %in% cmhc_zones_cma_ca$cmhc_zone) |> 
-  mutate(type = NA, 
-         CMA_name = NA,
-         .before = geometry) |> 
-  rbind(cmhc_zones_cma_ca)
-
-cmhc_zones <- 
-  cmhc_zones |> 
-  left_join(distinct(cmhc$rent, neighbourhood, region), 
-            by = c("cmhc_zone" = "neighbourhood"))
+  group_by(cmhc_zone) |> 
+  filter(area_percentage  == max(area_percentage)) |> 
+  select(-area, -area_percentage, -name) |> 
+  ungroup()
 
 # Add dwelling numbers to zones -------------------------------------------
 
 DA_area <- 
   DA |> 
+  # We only need renters
   select(ID = GeoUID, dwellings = Dwellings,
-         arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
-         accomodation = `v_CA16_5753: 72 Accommodation and food services`,
-         all_industry = `v_CA16_5699: All industry categories`,
+         # arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
+         # accomodation = `v_CA16_5753: 72 Accommodation and food services`,
+         # all_industry = `v_CA16_5699: All industry categories`,
          renter = `v_CA16_4838: Renter`,
          parent_renter = `v_CA16_4836: Total - Private households by tenure - 25% sample data`,
-         dwellings_value_avg = `v_CA16_4896: Average value of dwellings ($)`,
-         movers_5yrs = `v_CA16_6725: Movers`,
-         parent_movers_5yrs = `v_CA16_6719: Total - Mobility status 5 years ago - 25% sample data`) |> 
-  mutate(tourism = arts + accomodation) |> 
+         # dwellings_value_avg = `v_CA16_4896: Average value of dwellings ($)`,
+         # movers_5yrs = `v_CA16_6725: Movers`,
+         # parent_movers_5yrs = `v_CA16_6719: Total - Mobility status 5 years ago - 25% sample data`
+         ) |> 
+  # mutate(tourism = arts + accomodation) |> 
   mutate(DA_area = units::drop_units(st_area(geometry)))
-
-cmhc_zones <- 
-  cmhc_zones |> 
-  mutate(zone_area = units::drop_units(st_area(geometry)))
 
 cmhc_zones <- 
   cmhc_zones |> 
@@ -151,32 +136,23 @@ cmhc_zones <-
   filter(sum(new_da_area) >= 0.9) |> 
   ungroup() |> 
   mutate(dwellings = dwellings * new_da_area,
-         tourism = tourism * new_da_area,
-         all_industry = all_industry * new_da_area,
+         # tourism = tourism * new_da_area,
+         # all_industry = all_industry * new_da_area,
          renter = renter * new_da_area,
          parent_renter = parent_renter * new_da_area,
-         movers_5yrs = movers_5yrs * new_da_area,
-         parent_movers_5yrs = parent_movers_5yrs * new_da_area
+         # movers_5yrs = movers_5yrs * new_da_area,
+         # parent_movers_5yrs = parent_movers_5yrs * new_da_area
          ) |> 
-  group_by(cmhc_zone, type, CMA_name) |> 
+  group_by(cmhc_zone, tier) |> 
   summarize(dwellings = sum(dwellings),
-            tourism_employ = sum(tourism, na.rm = TRUE) / 
-              sum(all_industry, na.rm = TRUE),
+            # tourism_employ = sum(tourism, na.rm = TRUE) / 
+              # sum(all_industry, na.rm = TRUE),
             renter_pct = sum(renter, na.rm = TRUE) / 
               sum(parent_renter, na.rm = TRUE),
-            movers_5yrs_pct = sum(movers_5yrs, na.rm = TRUE) / 
-              sum(parent_movers_5yrs, na.rm = TRUE),
-            dwellings_value_avg = weighted.mean(dwellings_value_avg, new_da_area),
+            # movers_5yrs_pct = sum(movers_5yrs, na.rm = TRUE) / 
+              # sum(parent_movers_5yrs, na.rm = TRUE),
+            # dwellings_value_avg = weighted.mean(dwellings_value_avg, new_da_area),
             .groups = "drop")
-
-
-# Create a 'resort' type --------------------------------------------------
-
-cmhc_zones <- 
-  cmhc_zones |> 
-  mutate(type = if_else(tourism_employ >= 0.125, "RES", type),
-         # Summerland is an enclave of Penticton, a RES
-         type = if_else(cmhc_zone == "Summerland", "RES", type))
 
 
 # Attach CMHC zone to properties ------------------------------------------
@@ -193,22 +169,22 @@ row <-
 property$cmhc_zone <-
   map_chr(row, ~{if (is.na(.x)) return(NA) else cmhc_zones$cmhc_zone[.x]})
 
-property <- filter(property, housing)
-
 # Add a STR activity indicator --------------------------------------------
 
 cmhc_str <-
   map_dfr(2016:2021, function(y) {
     
     FREH_year <- 
-      FREH |> 
-      filter(date < paste0(y + 1, "-01-01"), date >= paste0(y, "-01-01")) |> 
-      filter(FREH) |> 
+      daily |> 
+      filter(housing,
+             date < paste0(y + 1, "-01-01"), date >= paste0(y, "-01-01")) |> 
+      filter(FREH_3 >= 0.5) |> 
       distinct(property_ID) |> 
       pull()
     
     FREH_zones <- 
       property |> 
+      filter(housing) |> 
       filter(created < paste0(y + 1, "-01-01"), 
              scraped >= paste0(y, "-01-01")) |> 
       mutate(FREH = if_else(property_ID %in% FREH_year, TRUE, FALSE)) |> 
@@ -248,14 +224,15 @@ cmhc_str <-
       filter(year == y) |> 
       select(neighbourhood, units_variation)
     
-    tourism_employment <- 
+    renter_pcts <- 
       cmhc_zones |> 
       st_drop_geometry() |> 
       transmute(cmhc_zone, 
-                tourism_employ = tourism_employ * 100,
-                renter_pct = renter_pct * 100,
-                movers_5yrs_pct = movers_5yrs_pct * 100,
-                dwellings_value_avg)
+                # tourism_employ = tourism_employ * 100,
+                renter_pct = renter_pct * 100#,
+                # movers_5yrs_pct = movers_5yrs_pct * 100,
+                # dwellings_value_avg
+                )
     
     # out <- 
     cmhc$rent |> 
@@ -263,14 +240,18 @@ cmhc_str <-
       select(neighbourhood, year, total_rent = total) |>
       left_join(str_activities, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(units_variation, by = "neighbourhood") |> 
-      left_join(tourism_employment, by = c("neighbourhood" = "cmhc_zone")) |> 
-      left_join(select(cmhc_zones, cmhc_zone, type), 
+      left_join(renter_pcts, by = c("neighbourhood" = "cmhc_zone")) |>
+      left_join(select(cmhc_zones, cmhc_zone, tier), 
                 by = c("neighbourhood" = "cmhc_zone")) |> 
       # Jambes Bay is a duplicated name (for a match with the spatial data), but 
       # it's 2 neighbourhoods! So it duplicates in the left join with units variation.
       distinct()
     
   })
+
+cmhc_str <- 
+  cmhc_str |> 
+  mutate(year = year - 2016)
 
 model <- lm(total_rent ~ #avg_activity_p_dwellings + 
               # units_variation +
@@ -280,21 +261,31 @@ model <- lm(total_rent ~ #avg_activity_p_dwellings +
               # movers_5yrs_pct +
               # dwellings_value_avg +
               year +
-              type - 1,
-            data = filter(cmhc_str, !is.na(type)))
+              tier - 1,
+            data = cmhc_str)
 
 summary(model)
 
-# Rent in zones -----------------------------------------------------------
 
+# Rent in zones -----------------------------------------------------------
 
 cmhc_str |> 
   filter(!is.na(freh_p_dwellings)) |> 
-  group_by(type, year) |> 
+  mutate(year = year + 2016) |> 
+  group_by(tier, year) |> 
   summarize(freh_p_dwellings = mean(freh_p_dwellings, na.rm = TRUE)) |> 
-  ggplot(aes(year, freh_p_dwellings, color = type)) +
+  ggplot(aes(year, freh_p_dwellings, color = tier)) +
   geom_line()
 
+
+daily |> 
+  filter(year(date) >= 2016) |> 
+  filter(FREH_3 > 0.5) |> 
+  left_join(select(property, property_ID, cmhc_zone, tier), by = "property_ID") |> 
+  count(date, tier) |> 
+  ggplot(aes(date, n, color = tier)) +
+  geom_line()
+  
 
 # Prepare the FREH graph grouped by types ---------------------------------
 
