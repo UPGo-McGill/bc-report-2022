@@ -33,7 +33,7 @@ There have been multiple studies that have looked at the impact of short-term re
 
 While no empirical research exists in a Canadian context to evaluate the impact of STR growth on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in STR listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers appear small, they are being multiplied by STR listing growth rates which have been quite high, so the authors find that the growth of Airbnb is responsible for one fifth of all rent growth and one seventh of housing price growth in the United States during the study period.
 
-To answer this question in the Canadian context, we came up with our own methodology. We developed a linear regression model looking at the relationship between average rents and the percentage of frequently-rented entire home per dwellings in CMAs, CAs, and resort towns. We used the October yearly average rents disclosed by the CMHC from 2016 to 2021 for every region in British Columbia with available data. Our models shows a strong positive relationship between the concentration of FREH listings and average rents.
+To answer this question in the Canadian context, we came up with our own methodology. We developed a linear regression model looking at the relationship between average rents and the percentage of frequently-rented entire home per dwellings in Census Metropolitan Areas (CMA), Census Agglomerations (CA), non-urban areas, and resort towns. Resort towns are municipalities that, according the census, have 12% or more of their labor employed in entertainment and recreation and accommodation and food businesses. Within the CMAs, we also differentiate between the entire CMA and the city centres, which include the cities of Vancouver, Victoria, and Abottsford. We used the October yearly average rents disclosed by the CMHC from 2016 to 2021 for every region in British Columbia with available data. Our models shows a strong positive relationship between the concentration of FREH listings and average rents.
 
 ### Predict rent prices with STR activity
 
@@ -51,7 +51,7 @@ names(rent_tier) <- rent_tier_1$tier
 
 ```
 
-From 2021 data, in BC, rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire home listings per dwellings had a significative predictive effect on these rents. 
+Based on 2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents. 
 
 ```{r make_fig_CHAPNUM_1}
 
@@ -89,9 +89,9 @@ figure_CHAPNUM_1_fun()
 
 (ref:fig-CHAPNUM-1) _Positive relationship between the percentage of frequently rented entire home listings per dwellings and rent prices_
 
-Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in ervery city category, between the percentage of frequently rented entire home listings per dwellings and rent prices. The higher the former, the higher the latter. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less full-time short term rentals. 
+Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in every city category, between the percentage of frequently rented entire-home listings per dwellings and rent prices. The relationship is clear: the higher the percentage of FREH listings, the higher the rents. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less commercially-operated short-term rentals. 
 
-We found 3 data points which successfully and significantly predicted average rental prices. The first is a the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second data point is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. Finally, the last coefficient is the category of the zone. The model will adjust rent prices higher in a CMA than in a non-urban zone.
+We found three variables which successfully and significatively predicted average rental prices. The first variable is the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second variable is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. This is quite intuitive, since rent prices tend to increase by a small percentage every year. Finally, the last variable of interest is the geographic region. The model predicts that rent prices increase at higher rates in CMAs than in non-urban zones.
 
 ```{r model-table, results = "asis", include=T}
 model_pretty <- model
@@ -105,7 +105,7 @@ stargazer::stargazer(model_pretty, type = "latex", single.row = T, dep.var.label
 
 ### Case studies on the impact of STR market activities on rental prices
 
-The model was applied to the entire population of entire home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
+The model was applied to the entire population of entire-home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
 
 ```{r model-practical, include=T}
 
@@ -203,7 +203,7 @@ kelowna_increase_due_STR <-
 
 ```
 
-In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of `r kelowna_prices_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH , thus representing `r kelowna_FREH_p_2021` of all dwellings. The model lets us estimate that, all other things being equal, in 2022, a 10% increase in the total number of FREH in the zone would bring the average rent to `r kelowna_rent_2022`, which `r kelowna_increase_due_STR` would by attributed to the growth in STR activity.
+In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of `r kelowna_prices_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH listings, thus representing `r kelowna_FREH_p_2021` of all dwellings. The model lets us estimate that, all other things being equal, in 2022, a 10% increase in the total number of FREH in the zone would bring the average rent to `r kelowna_rent_2022`, which `r kelowna_increase_due_STR` could by attributed to the growth in STR activity.
 
 ### The burden of STR activity on renter households
 
