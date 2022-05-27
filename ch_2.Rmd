@@ -5,30 +5,36 @@ date: '2022-05-25'
 ---
 
 ```{r setup, include=FALSE}
-library(here)
-source(here("R", "01_startup.R"))
 
 knitr::opts_chunk$set(echo = FALSE)
-knitr::opts_chunk$set(include = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
-# Function for checking file modifications
-mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
-
 qload(here("output", "/model_chapter.qsm"))
 
-# Set this to TRUE to output PDF figures
-build_figures <- TRUE
 ```
 
-Like many other Canadian provinces, the housing market in British Columbia has been experiencing large price increases in both rents and property values, and increasingly so since the Covid-19 pandemic. This chapter uses housing data retrieved from the 2016 Canadian census and the Canadian Mortgage and Housing Corporation to determine the impact of commercially-operated short-term rentals on the rent levels in the province's Census Metropolitan Areas (CMA) and Census Agglomerations (CA). 
-
+Like many other Canadian provinces, the housing market in British Columbia has been experiencing large price increases in both rents and property values, and increasingly so since the Covid-19 pandemic. This chapter uses housing data retrieved from the 2016 Canadian census and the Canadian Mortgage and Housing Corporation to determine the impact of commercially-operated short-term rentals on the rent levels in the province's Census Metropolitan Areas (CMA) and Census Agglomerations (CA).
 
 ## STR-induced housing loss
 
+BC's housing market has been under considerable stress in the past years, with housing prices and rents rising, and rental vacancy rates falling. These are symptoms of a market where the supply of housing is insufficient to meet demand. One possible explanation for both the insufficient supply and elevated demand for housing in BC is the growth in short-term rentals. Tourists are now able to compete with residents for housing---adding demand to the local housing market---while landlords are now able to shift their properties out of the conventional housing market to become dedicated STRs---reducing the supply of conventional housing. Research has found that renting a housing unit on the STR market frequently offers landlords greater potential revenue than conventional leases (Wachsmuth & Weisler 2018), especially in transit-accessible neighborhoods (Deboosere et al. 2019). Multiple studies have also found that Airbnb and other STR platforms increase housing costs (Barron, Kung, & Proserpio 2017; Horn & Merante 2017; Garcia-Lopez et al. 2019).
 
+One of the major considerations when gauging the impacts of short-term rentals (STRs) on a city, therefore, is the extent to which STRs are removing long-term housing from the market. This process can occur either directly, where tenants of a unit are evicted or not replaced at the end of a lease and the unit is converted to a STR, or indirectly by absorbing new construction or investment properties which otherwise would have gone onto the long-term market. To obtain the exact number of units that have been occupied as STRs, landlords or units would need to be individually surveyed, which is infeasible because STR hosts are mostly anonymous on major STR platforms such as Airbnb and Vrbo. Instead, we use the daily activity of listings, alongside structural characteristics such as listing type and location, to estimate which listings are operating as dedicated STRs and are therefore not available as conventional long-term housing.
 
+*Frequently Rented Entire-Home (FREH) listings:* The number of frequently-rented units is one way to estimate STR-induced housing loss. If a STR is available for reservations the majority of the year and receives many bookings, it is reasonable to assume that it is not serving as an individual's principal residence at the same time. Along these lines, we define frequently rented entire-home (FREH) listings as entire-home listings which were available on Airbnb or Vrbo the majority of the year (at least 183 nights) and were booked a minimum of 90 nights. We then apply a statistical model (described in the appendix) to the FREH data in order to generate an estimate of FREH activity based on three months of listing activity. This allows us to detect listings which are operating in a full- time manner but have not yet been listed for an entire year, and allows us to account for relatively short-term changes in market conditions.
+
+*Ghost hostels:* In addition to FREH listings, it is possible that entire housing units have been subdivided into multiple private-room listings, each of which appearing to be a spare bedroom or the like, while actually collectively representing an apartment removed from the long-term housing market. We call these clusters of private- room listings "ghost hostels", building on the advocacy group Fairbnb.ca's term "ghost hotels" --- multiple FREH listings located in a single building, collectively serving as de facto hotels instead of long-term housing (Wieditz 2017). We detect ghost hostels by finding clusters of three or more private-room listings operated by a single host, whose reported locations are close enough to each other that they are likely to have originated in the same actual housing unit. (Airbnb and Vrbo obfuscate listing locations by shifting them randomly up to 200 m.)
+
+At the end of 2021, there were `r freh_2021` FREH listings in the City of Toronto, and `r gh_units_2021` more housing units which were operating as ghost hostels. (We refer to these listings collectively as "dedicated STRs".) In total, therefore, short-term rentals were taking `r housing_loss_2021` housing units off of BC's long-term market at the end of the year (Figure 7). Notably, while the number of active daily listings was `r active_decline_pct_2019_2021` lower in 2021 than in 2019, the number of housing units which STRs took off of BC's housing market decreased at a much sharper rate. There were `r housing_loss_decline_pct_2019_2021` fewer dedicated STRs in 2021 (`r housing_loss_2021`) than in 2019 (`r housing_loss_2019`); province-wide, the pandemic has disproportionately affected commercial operators.
+
+```{r fig_7}
+
+```
+
+In 2019, two thirds of entire-home listings (65.4%) and half (49.4%) of the private-room listings were taking housing off the long-term market. At the end of 2020 only a quarter (24.4%) of entire-home listings and less than half of (44.2%) private-room listings were being operated in a full-time or close- to-full-time fashion (Figure 8). This does not mean that these listings are no longer dedicated STRs, since they could still be operating full-time but simply not receiving many reservations due to Covid travel restrictions (a possibility we explore below). Table 4 summarizes STR-induced housing loss patterns by neighbourhood. It demonstrates that the City-wide trend of shrinking dedicated STRs due to the pandemic holds in all neighbourhoods. The year-over-year decline in STR-induced housing loss has been evenly distributed between virtually all wards, with an average of -59.3%. The following section takes a closer look at the impact of Covid-19 on frequently rented entire-home listings.
+
+The 3,160 housing units taken off of Toronto's housing market in 2020 are 0.3% of the total amount of housing in the city, and this housing loss has been concentrated in small parts of the city. Figure 9 shows the proportion of each ward or dissemination area's housing stock which was operated as a dedicated short-term rental as of the end of 2020. The maps show a tale of two cities: in most of Toronto, there are relatively few dedicated STRs, while in the centre of the city as well as a few 17 transit corridors they are ubiquitous. In the Spadina-Fort York ward, 1.2% of all housing units were operating as dedicated STRs at the end of 2020, even in the face of Covid-19. The figure is 0.5% for University-Rosedale and 0.3% for Toronto Centre. In the Downtown CMHC zone, the rental vacancy rate was 2.9% in 2019, while the number of STRs contributing to housing loss in the Spadina- Fort York in 2019 was 3.5% of all housing units. This means that, prior to the pandemic, there were slightly more dedicated STRs in this neighbourhood than there were vacant apartments for rent.
 
 ## Short-term rentals and rents
 
@@ -54,7 +60,7 @@ names(rent_tier) <- rent_tier_1$tier
 
 ```
 
-Based on 2016-2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents. 
+Based on 2016-2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents.
 
 ```{r make_fig_CHAPNUM_1}
 
@@ -86,13 +92,13 @@ if (build_figures) {
 
 ```
 
-``` {r fig-CHAPNUM-1, include = TRUE, fig.cap = '(ref:fig-CHAPNUM-1)', fig.align = "center"}
+```{r fig-CHAPNUM-1, include = TRUE, fig.cap = '(ref:fig-CHAPNUM-1)', fig.align = "center"}
 figure_CHAPNUM_1_fun()
 ```
 
-(ref:fig-CHAPNUM-1) _Positive relationship between the percentage of frequently rented entire home listings per dwellings and rent prices_
+(ref:fig-CHAPNUM-1) *Positive relationship between the percentage of frequently rented entire home listings per dwellings and rent prices*
 
-Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in every city category, between the percentage of frequently rented entire-home listings per dwellings and rent prices. The relationship is clear: the higher the percentage of FREH listings, the higher the rents. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less commercially-operated short-term rentals. 
+Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in every city category, between the percentage of frequently rented entire-home listings per dwellings and rent prices. The relationship is clear: the higher the percentage of FREH listings, the higher the rents. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less commercially-operated short-term rentals.
 
 We found three variables which successfully and significatively predicted average rental prices. The first variable is the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second variable is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. This is quite intuitive, since rent prices tend to increase by a small percentage every year. Finally, the last variable of interest is the geographic region. The model predicts that rental prices should be adjusted upward more with the intercept in CMAs than in non-urban areas.
 
@@ -104,7 +110,7 @@ stargazer::stargazer(model_pretty, type = "latex", single.row = T, dep.var.label
 
 ```
 
-(ref:tab-model-table) _Average rent prices rent regression model using STR activity as a predictive coefficient_
+(ref:tab-model-table) *Average rent prices rent regression model using STR activity as a predictive coefficient*
 
 ### Case studies on the impact of STR market activities on rental prices
 
@@ -175,7 +181,7 @@ model_table |>
 
 ```
 
-(ref:tab-model-practical) _Applied model on particular zones of interest_
+(ref:tab-model-practical) *Applied model on particular zones of interest*
 
 ```{r core_area_2021}
 
@@ -296,5 +302,4 @@ every_year_overpaid <-
 
 Since 2016, BC tenants have paid more than \$3 trillion in rent. During the same time period, we estimate that `r attributed_to_str_2016_2021` (\$`r overpaid_2016_2021` billion) of this amount was due to the STR market activity. The year prior to the COVID-19 pandemic, 2019, at the peak of the STR market in British Columbia, `r attributed_to_str_2019` of the total prices of rent were overpaid by tenants due to STR market activities.
 
-From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `r every_year_overpaid[["2016"]]`, `r every_year_overpaid[["2017"]]` in 2017, `r every_year_overpaid[["2018"]]` in 2018, and `r every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years. 
-
+From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `r every_year_overpaid[["2016"]]`, `r every_year_overpaid[["2017"]]` in 2017, `r every_year_overpaid[["2018"]]` in 2018, and `r every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years.
