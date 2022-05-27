@@ -2,6 +2,11 @@
 
 library(tidyverse)
 library(lubridate)
+library(slider)
+library(tsibble)
+library(feasts)
+library(fable)
+
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 
 
@@ -257,6 +262,234 @@ ml_rev_pct_2021 <-
   scales::percent(0.1)
 
 
+# Growth trends: pre- and post-Covid --------------------------------------
+
+daily_variation <-
+  daily |> 
+  filter(housing, status != "B", date != "2020-02-29") |> 
+  filter(str_starts(property_ID, "ab-")) |>
+  count(tier, date) |> 
+  mutate(n = slide_dbl(n, ~{(.x[366] - .x[1]) / .x[1]}, .before = 365, 
+                       .complete = FALSE)) |> 
+  filter(!is.na(n), !is.infinite(n)) |> 
+  filter(date >= as.Date("2017-06-01") + years(1))
+
+daily_variation <-
+  daily |> 
+  filter(housing, status != "B", date != "2020-02-29") |> 
+  filter(str_starts(property_ID, "ab-")) |>
+  count(date) |> 
+  mutate(n = slide_dbl(n, ~{(.x[366] - .x[1]) / .x[1]}, .before = 365, 
+                       .complete = FALSE)) |> 
+  filter(!is.na(n), !is.infinite(n)) |> 
+  filter(date >= as.Date("2017-06-01") + years(1)) |> 
+  mutate(tier = "All", .before = date) |> 
+  bind_rows(daily_variation)
+
+active_change_pct_2017 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2016, 2017)) |> 
+  count(year = year(date)) |> 
+  summarize(pct = n[year == 2017] / sum(n)) |> 
+  pull(pct) |> 
+  scales::percent(0.1)
+
+active_change_pct_2018 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2017, 2018)) |> 
+  count(year = year(date)) |> 
+  summarize(pct = (n[year == 2018] - n[year == 2017]) / n[year == 2018]) |> 
+  pull(pct) |> 
+  scales::percent(0.1)
+
+active_change_pct_2019 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2018, 2019)) |> 
+  count(year = year(date)) |> 
+  summarize(pct = (n[year == 2019] - n[year == 2018]) / n[year == 2018]) |> 
+  pull(pct) |> 
+  scales::percent(0.1)
+
+active_change_pct_2020 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2019, 2020)) |> 
+  count(year = year(date)) |> 
+  summarize(pct = (n[year == 2020] - n[year == 2019]) / n[year == 2019]) |> 
+  pull(pct) |> 
+  scales::percent(0.1)
+
+active_change_pct_2021 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2020, 2021)) |> 
+  count(year = year(date)) |> 
+  summarize(pct = (n[year == 2021] - n[year == 2020]) / n[year == 2020]) |> 
+  pull(pct) |> 
+  scales::percent(0.1)
+
+# Get daily reservations and prices
+reservations_and_prices <- 
+  daily |>  
+  filter(housing, date >= "2017-06-01", status == "R") |> 
+  group_by(tier, date) |> 
+  summarize(res = n(), price = mean(price))
+
+reservations_and_prices <- 
+  daily |>  
+  filter(housing, date >= "2017-06-01", status == "R") |> 
+  group_by(date) |> 
+  summarize(res = n(), price = mean(price)) |> 
+  mutate(tier = "All", .before = date) |> 
+  bind_rows(reservations_and_prices)
+
+# Create monthly time series
+monthly_series <- 
+  reservations_and_prices |> 
+  tsibble::as_tsibble(key = tier, index = date) |> 
+  tsibble::index_by(yearmon = yearmonth(date)) |> 
+  group_by(tier) |> 
+  summarize(price = sum(res * price) / sum(res),
+            res = sum(res)) %>% 
+  relocate(price, .after = res)
+
+# Create reservations model
+reservations_model <- 
+  monthly_series |> 
+  filter(yearmon <= yearmonth("2020-02")) |> 
+  model(res = decomposition_model(
+    STL(res, robust = TRUE), NAIVE(season_adjust)))
+
+# Create price model
+price_model <- 
+  monthly_series |> 
+  filter(yearmon <= yearmonth("2020-02")) |> 
+  model(price = decomposition_model(
+    STL(price, robust = TRUE), NAIVE(season_adjust)))
+
+# Create reservations forecast
+reservations_forecast <-
+  reservations_model |> 
+  forecast(h = "24 months") |> 
+  as_tibble() |> 
+  select(tier, yearmon, res_trend_month = .mean)
+
+# Create price forecast
+price_forecast <- 
+  price_model |> 
+  forecast(h = "24 months") |> 
+  as_tibble() |> 
+  select(tier, yearmon, price_trend_month = .mean)
+
+# Integrate forecasts into monthly data
+monthly_series <- 
+  monthly_series |>  
+  left_join(reservations_forecast, by = c("tier", "yearmon")) |> 
+  left_join(price_forecast, by = c("tier", "yearmon"))
+
+# Integrate forecasts into daily data
+reservations_and_prices <- 
+  reservations_and_prices |> 
+  group_by(tier) |> 
+  mutate(across(c(res, price), slider::slide_dbl, ~.x[1], .before = 366, 
+                .complete = TRUE, .names = "{.col}_trend")) |> 
+  mutate(across(c(res_trend, price_trend), slider::slide_dbl, mean, 
+                .before = 6, .complete = TRUE)) |> 
+  mutate(across(c(res_trend, price_trend), 
+                ~if_else(date >= "2020-03-01", .x, NA_real_))) |> 
+  ungroup() |> 
+  mutate(yearmon = yearmonth(date)) |> 
+  left_join(select(monthly_series, -res, -price), by = c("tier", "yearmon")) |> 
+  group_by(tier, yearmon) |> 
+  mutate(res_trend = res_trend * res_trend_month / sum(res_trend),
+         price_trend = price_trend * price_trend_month / mean(price_trend)) |> 
+  ungroup() |> 
+  select(-c(yearmon:price_trend_month))
+
+covid_res_dif <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "All") |> 
+  summarize(res_dif = sum(res_trend - res)) |> 
+  pull(res_dif) |> 
+  scales::comma(100)
+
+covid_res_total <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "All") |> 
+  summarize(res_tot = sum(res)) |> 
+  pull(res_tot) |> 
+  scales::comma(100)
+
+covid_res_pct <-
+  {parse_number(covid_res_total) / (parse_number(covid_res_dif) + 
+                                       parse_number(covid_res_total))} |> 
+  scales::percent(0.1)
+
+covid_res_trend <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "All") |> 
+  summarize(res_tot = sum(res_trend)) |> 
+  pull(res_tot) |> 
+  scales::comma(100)
+
+covid_cc_res_dif <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "CC") |> 
+  summarize(res_dif = sum(res_trend - res)) |> 
+  pull(res_dif)
+
+covid_cc_res_total <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "CC") |> 
+  summarize(res_tot = sum(res)) |> 
+  pull(res_tot)
+
+covid_cc_res_pct <- 
+  {covid_cc_res_total / (covid_cc_res_dif + covid_cc_res_total)} |> 
+  scales::percent(0.1)
+
+covid_res_res_dif <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "RES") |> 
+  summarize(res_dif = sum(res_trend - res)) |> 
+  pull(res_dif)
+
+covid_res_res_total <-
+  reservations_and_prices |> 
+  filter(date >= "2020-03-01", tier == "RES") |> 
+  summarize(res_tot = sum(res)) |> 
+  pull(res_tot)
+
+covid_res_res_pct <- 
+  {covid_res_res_total / (covid_res_res_dif + covid_res_res_total)} |> 
+  scales::percent(0.1)
+
+price_difs <- 
+  reservations_and_prices |> 
+  mutate(price_dif = price - price_trend,
+         price_dif_pct = (price - price_trend) / price_trend) |> 
+  group_by(tier) |> 
+  summarize(max_price = max(price, na.rm = TRUE),
+            max_dif = max(price_dif, na.rm = TRUE),
+            max_dif_pct = max(price_dif_pct, na.rm = TRUE),
+            max_price_date = date[which.max(price)],
+            max_dif_date = date[which.max(price_dif)],
+            max_dif_pct_date = date[which.max(price_dif_pct)])
+
+max_price <- scales::dollar(price_difs_tf$max_price, 1)
+
+var_rise_price_tf <-
+  daily |> 
+  filter(housing, city == "Tofino", year(date) %in% c(2019, 2021),
+         month(date) <= month(max(daily$date))) |> 
+  group_by(year_2021 = year(date) == 2021) |> 
+  summarize(avg_price = mean(price)) |> 
+  summarize((avg_price[2] - avg_price[1]) / avg_price[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
+
+
+
+
 # Save output -------------------------------------------------------------
 
 qs::qsavem(active_all_avg_2021, active_non_housing_2021, active_avg_2021,
@@ -266,5 +499,9 @@ qs::qsavem(active_all_avg_2021, active_non_housing_2021, active_avg_2021,
            rev_avg_change_pct, rev_med_change_pct, active_daily_tiers,
            eh_pct_2021, eh_pct_2019, revenue_colour, host_deciles,
            host_top_10_pct, host_top_1_pct, host_top_1_n, ml_active,
-           ml_pct_2021, ml_rev_pct_2021,
+           ml_pct_2021, ml_rev_pct_2021, daily_variation,
+           active_change_pct_2018, active_change_pct_2019, 
+           active_change_pct_2020, active_change_pct_2021, 
+           reservations_and_prices, covid_res_dif, covid_res_total, 
+           covid_res_pct, covid_res_trend, covid_cc_res_pct, covid_res_res_pct,
            file = "output/data/ch_1.qsm", nthreads = future::availableCores())

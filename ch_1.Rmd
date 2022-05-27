@@ -1,25 +1,22 @@
 ---
-title: "Short-term rentals in British Columbia: Market overview"
-output: html_document
+title: "Chapter 1. Short-term rentals in British Columbia: Market overview"
+output: pdf_document
 date: '2022-05-16'
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(slider)
+library(lubridate)
 qs::qload("output/data/ch_1.qsm", nthreads = 8)
+col_palette <-
+  c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
 ### Executive summary
 
-TKTK Key findings:
-
-1.  Listing inventory is still far below pre-Covid, but revenue, pricing and revenue per listing have mostly recovered.
-2.  Strong divergence between big cities and mid-tier/resort cities.
-3.  Collapse in year-round STRs during the pandemic, but recovery already started in 2021.
-4.  Urban STR markets collapsed, and many STR listings returned to the long-term market in Vancouver.
-5.  Resort towns saw declines in STR bookings, but increases in nightly prices.
-6.  The patterns are consistent with a redistribution of travel destinations from distant cities to nearby resort towns.
+**In 2021, there was an average of `r active_all_avg_2021` short-term rental listings active each day in the province of British Columbia (a decrease of `r active_change_pct` from 2019). The province's STR market is dominated by commercial operators---the top 10% of hosts earned `r host_top_10_pct` of all revenue, while the top 1% of hosts---just `r host_top_1_n` operators---earned `r host_top_1_pct` of revenue. The Covid pandemic caused a massive decline in STR activity. In total, from March 2020 through December 2021, we estimate that only `r covid_res_pct` of the reservations expected under the previous growth trend occurred. But this decline has been concentrated in the province's large urban regions, where reservations and prices have both plummeted. In smaller communities, reservations are down from their pre-pandemic trend, but nightly prices have been substantially higher, which suggests a redistribution of travel destinations from distant cities to nearby resort towns.**
 
 ### Active listings and host revenue
 
@@ -86,7 +83,7 @@ Finally, one simple method of identifying commercial STR operators is to identif
 
 In 2021, `r ml_pct_2021` of active listings in British Columbia were multilistings, earning `r ml_rev_pct_2021` of total host revenue. Figure 3 shows the share of all active listings which are multilistings over time. Multilistings have been growing steadily since 2017, both in terms of listings and revenue percentage, and they are much more common in resort communities and large cities than in smaller, non-resort communities.
 
-``` {r fig_3, echo = FALSE}
+```{r fig_3, echo = FALSE}
 
 ml_active |> 
   group_by(tier) |> 
@@ -107,31 +104,118 @@ By any of these metrics, BC's STR market is increasingly dominated by commercial
 
 ### Growth trends: pre- and post-Covid
 
-Until early 2020, the number of active STR listings in British Columbia was steadily increasing (with the exception of Vancouver, where the 2018 introduction of the City's STR regulations caused a large one-time drop in the number of active listings). Figure TKTK shows the change in active listings and revenue relative to one year earlier, which is a convenient way to remove seasonal variation to identify underlying growth trends. TKTK The figure indicates that, throughout 2017 and the first half of 2018, there was great growth in the revenue earned by hosts. From mid-2018 to late 2019, both active listings and revenue were greater than the year before, albeit with less growth. Both active listings and revenue grew sharply during the 2019 winter season. The pandemic halted BC's STR market growth, with active listings and revenue declining since March 2020.
+Until early 2020, the number of active STR listings in British Columbia was steadily increasing (with the exception of Vancouver, where the 2018 introduction of the City's STR regulations caused a large one-time drop in the number of active listings). Figure 4 shows the change in active listings relative to one year earlier, which is a convenient way to remove seasonal variation to identify underlying growth trends. The figure indicates that, from 2018 through the beginning of the pandemic, active listings were growing in all different community types. The pandemic halted BC's STR market growth, with active listings collapsing in March 2020. But, while listing growth again turned positive in smaller communities as of early 2021, active listings continued to shrink until the end of 2021 in BC's largest cities.
 
-Overall, the year-over-year change in average active listings from 2016 to 2017 was TK%, the year-over-year change from 2017 to 2018 was TK%, and the year-over-year change from 2018 to 2019 was TK%. Because of the Covid-19 pandemic, the year-over-year change in active daily listings was TK% in 2020 and TK% in 2021.
+```{r fig_4, echo = FALSE}
 
-#### Trend analysis: active listings
+daily_variation |> 
+  group_by(tier) |> 
+  mutate(n = slide_dbl(n, mean, .before = 20, .complete = TRUE)) |> 
+  ungroup() |> 
+  ggplot(aes(date, n, colour = tier)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_line(lwd = 1, na.rm = TRUE) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, limits = c(-1, NA), 
+                     labels = scales::percent) +
+  scale_color_brewer(palette = "Accent", guide = "none") +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = "none", panel.grid.minor.x = element_blank())
 
-The pandemic had a massive impact on STR listings and revenue throughout the province, and trend analysis allows for a more precise estimate of how this impact varied from location to location. Figure TKTK provides a closer look at daily reservations since 2019, comparing the actual trajectory of reservations during the pandemic with what the trajectory of reservations would have been expected to be, based on previous growth in the overall provincial STR market and in each of the sub-markets, but in the absence of the pandemic. (To do this, we use seasonal decomposition to identify the regular seasonal fluctuations in STR activity and separate them from the underlying patterns of growth or decline.) In total, from March 2020 through December 2021, we estimate that there have been TKTK fewer STR nights reserved than would normally have been expected to occur. The TKTK total nights reserved in this time period is only TKTK% of the TKTK nights total that would represent the previous growth trend.
+```
 
-As Figure TKTK suggests, the impact of the pandemic on STR reservations has been highly uneven between different types of communities in the province. TKTK explanation.
+Overall, the year-over-year change in average active listings from 2017 to 2018 was `r active_change_pct_2018`, and the year-over-year change from 2018 to 2019 was `r active_change_pct_2019`. Because of the Covid-19 pandemic, the year-over-year change in active daily listings was `r active_change_pct_2020` in 2020 and `r active_change_pct_2021` in 2021.
 
-#### Trend analysis: host revenue
+#### Trend analysis: reservations
 
-Province-wide, STR host revenue decreased by a staggering TKTK% in 2020 compared to 2019. To offer some perspective, from 2018 to 2019, STR revenue increased by TKTK%. Throughout the May-December period of 2020, moreover, nightly prices have been an average of TKT% lower than expected. Spread across the 916,000 nights reserved during this period, this means that STR operators collectively earned \$32.6 million less than they would have on their bookings in the absence of the pandemic. When the lower prices on reservations which did occur is combined with the reservations which did not occur, our estimate is that Toronto's STR hosts lost a total of \$361.9 million in revenue between March and December 2020 because of the Covid-19 pandemic.
+The pandemic had a massive impact on STR listings and revenue throughout the province, and trend analysis allows for a more precise estimate of how this impact varied from location to location. Figure 5 provides a closer look at daily reservations since 2019, comparing the actual trajectory of reservations during the pandemic with what the trajectory of reservations would have been expected to be, based on previous growth in the overall provincial STR market and in each of the sub-markets, but in the absence of the pandemic. (To do this, we use seasonal decomposition to identify the regular seasonal fluctuations in STR activity and separate them from the underlying patterns of growth or decline.)
+
+```{r fig_5, echo = FALSE, warning = FALSE, fig.width = 9}
+
+reservations_and_prices |> 
+  group_by(tier) |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  ungroup() |> 
+  select(tier, date, res, res_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    tier == "All" & date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices |> 
+                  group_by(tier) |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+                  ungroup()}, fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 1)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+```
+
+As Figure 5 suggests, the impact of the pandemic on STR reservations has been highly uneven between different types of communities in the province. In total, from March 2020 through December 2021, we estimate that there have been `r covid_res_dif` fewer STR nights reserved than would normally have been expected to occur. The `r covid_res_total` total nights reserved in this time period is only `r covid_res_pct` of the `r covid_res_trend` nights total that would represent the previous growth trend. However, an enormous amount of these "missing" reservations are concentrated in central cities. Here, actual reservations were only `r covid_cc_res_pct` of what the pre-pandemic trend would have predicted. By contrast, in resort communities, actual reservations were `r covid_res_res_pct` of the pre-pandemic trend---only two thirds of the decline experienced in central cities.
 
 #### Trend analysis: nightly prices
 
-TKTK
+Unlike reservations, which fell consistently---if at slightly different rates---across the province during the pandemic, nightly prices have behaved very differently in different community types (Figure 6). In central cities and the rest of the large urban regions, prices fell precipitously in 2020. In combination with the steep drop in reservations during this same time period, this unambiguously describes a collapse in STR demand in the big cities, as long-distance travel which normally supplies the temporary accommodation demand dried up. Throughout 2021, prices generally remained below their pre-pandemic trend, albeit at somewhat higher levels than 2020.
+
+In smaller communities and resort towns, however, the pattern in 2020 was nearly the opposite. Compared to the pre-pandemic trend, prices *increased* substantially. This occurred at the same time as actual reservations declined in these locations. This combination suggests a spike in demand for non-urban STRs in the early pandemic---consistent with the idea that leisure travelers cancelled their long-distance vacations and substituted local vacations instead---but also that the actual supply of STRs in these locations was constrained, resulting in higher prices rather than increased reservations. Prices have remained much higher than the pre-pandemic trend in these non-urban locations throughout 2021.
+
+```{r fig_6, echo = FALSE, warning = FALSE, fig.width = 9}
+
+reservations_and_prices |> 
+  group_by(tier) |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  ungroup() |> 
+  select(tier, date, price, price_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2019-07-05" & name == "price" ~ "Actual price", 
+    tier == "All" & date == "2020-08-05" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices |> 
+                  group_by(tier) |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE)) |> 
+                  ungroup()}, fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 1)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+```
 
 ### Conclusions
 
-TKTK Key findings:
+British Columbia's STR market over the last several years can be characterized by the following stylized facts:
 
-1.  Listing inventory is still far below pre-Covid, but revenue, pricing and revenue per listing have mostly recovered.
-2.  Strong divergence between big cities and mid-tier/resort cities.
-3.  Collapse in year-round STRs during the pandemic, but recovery already started in 2021.
-4.  Urban STR markets collapsed, and many STR listings returned to the long-term market in Vancouver.
-5.  Resort towns saw declines in STR bookings, but increases in nightly prices.
-6.  The patterns are consistent with a redistribution of travel destinations from distant cities to nearby resort towns.
+1.  Commercial operators dominate the STR market province-wide, and in each community type, although they are particularly dominant in large cities and resort towns. In general, the top 10% of STR hosts earn a majority of all the STR revenue in the province.
+2.  During the pandemic there has been a strong divergence between big cities and smaller communities. The former saw their STR markets collapse, and they have only barely begun to recover. The latter saw declines in STR bookings, but increases in nightly prices.
+3.  The patterns are consistent with a redistribution of travel destinations from distant cities to nearby resort towns.
