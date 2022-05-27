@@ -18,7 +18,7 @@ knitr::opts_chunk$set(warning = FALSE)
 # Function for checking file modifications
 mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
 
-qload(here("output", "/data_processed.qsm"))
+# qload(here("output", "/data_processed.qsm"))
 qload(here("output", "/model_chapter.qsm"))
 
 # Set this to TRUE to output PDF figures
@@ -51,7 +51,7 @@ names(rent_tier) <- rent_tier_1$tier
 
 ```
 
-Based on 2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents. 
+Based on 2016-2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents. 
 
 ```{r make_fig_CHAPNUM_1}
 
@@ -91,7 +91,7 @@ figure_CHAPNUM_1_fun()
 
 Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in every city category, between the percentage of frequently rented entire-home listings per dwellings and rent prices. The relationship is clear: the higher the percentage of FREH listings, the higher the rents. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less commercially-operated short-term rentals. 
 
-We found three variables which successfully and significatively predicted average rental prices. The first variable is the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second variable is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. This is quite intuitive, since rent prices tend to increase by a small percentage every year. Finally, the last variable of interest is the geographic region. The model predicts that rent prices increase at higher rates in CMAs than in non-urban zones.
+We found three variables which successfully and significatively predicted average rental prices. The first variable is the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second variable is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. This is quite intuitive, since rent prices tend to increase by a small percentage every year. Finally, the last variable of interest is the geographic region. The model predicts that rental prices should be adjusted upward more with the intercept in CMAs than in non-urban areas.
 
 ```{r model-table, results = "asis", include=T}
 model_pretty <- model
@@ -207,21 +207,14 @@ In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of 
 
 ### The burden of STR activity on renter households
 
-```{r core_area_2021}
+```{r overpaid}
 
+# All time
 total_rent_paid_2016_2021 <- 
 cmhc$rent |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
-  # group_by(tier) |> 
-  # summarize(rent_paid = #prettyNum(
-  #             sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE),
-  #                                 #big.mark = ",")
-  #           ) |> 
-  summarize(prettyNum(
-              sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE),
-                                  big.mark = ",")
-            ) |>
+  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
   pull()
 
 total_rent_paid_due_STR_2016_2021 <- 
@@ -230,15 +223,75 @@ cmhc_str |>
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
   filter(!is.na(tier)) |> 
-  # group_by(tier) |> 
-  # summarize(too_much = sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
-    summarize(prettyNum(
-              sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE),
-                                  big.mark = ",")
-            ) |> 
+    summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
   pull()
 
+attributed_to_str_2016_2021 <- 
+(total_rent_paid_due_STR_2016_2021 / 
+  total_rent_paid_2016_2021) |> 
+  scales::percent(accuracy = 0.02)
+
+overpaid_2016_2021 <- 
+total_rent_paid_due_STR_2016_2021 |> 
+  round() |> 
+  str_remove("\\d{9}$")
+
+
+# 2019
+total_rent_paid_2019 <- 
+cmhc$rent |> 
+  filter(year == 2019) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+  pull()
+
+total_rent_paid_due_STR_2019 <- 
+cmhc_str |> 
+    filter(year + 2016 == 2019) |> 
+  mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  filter(!is.na(tier)) |> 
+    summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+  pull()
+
+attributed_to_str_2019 <-
+(total_rent_paid_due_STR_2019 / 
+  total_rent_paid_2019) |> 
+  scales::percent(accuracy = 0.02)
+
+
+# Year overpaid
+every_year_overpaid <- 
+  map(set_names(2016:2021), ~{
+    total_rent_paid <- 
+      cmhc$rent |> 
+      filter(year == .x) |> 
+      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+                by = c("neighbourhood" = "cmhc_zone")) |> 
+      summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+      pull()
+    
+    total_rent_paid_due_STR <- 
+      cmhc_str |> 
+      filter(year + 2016 == .x) |> 
+      mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
+      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+                by = c("neighbourhood" = "cmhc_zone")) |> 
+      filter(!is.na(tier)) |> 
+      summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+      pull()
+    
+    (total_rent_paid_due_STR / 
+        total_rent_paid) |> 
+      scales::percent(accuracy = 0.02)
+    
+  })
 
 ```
 
+Since 2016, BC tenants have paid more than \$3 trillion in rent. During the same time period, we estimate that `r attributed_to_str_2016_2021` (\$`r overpaid_2016_2021` billion) of this amount was due to the STR market activity. The year prior to the COVID-19 pandemic, 2019, at the peak of the STR market in British Columbia, `r attributed_to_str_2019` of the total prices of rent were overpaid by tenants due to STR market activities.
+
+From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `r every_year_overpaid[["2016"]]`, `r every_year_overpaid[["2017"]]` in 2017, `r every_year_overpaid[["2018"]]` in 2018, and `r every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years. 
 

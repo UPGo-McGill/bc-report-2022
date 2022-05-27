@@ -125,6 +125,7 @@ DA_area <-
   # We only need renters
   select(ID = GeoUID, dwellings = Dwellings,
          population = Population,
+         households = Households,
          # arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
          # accomodation = `v_CA16_5753: 72 Accommodation and food services`,
          # all_industry = `v_CA16_5699: All industry categories`,
@@ -159,6 +160,7 @@ cmhc_zones <-
   group_by(cmhc_zone, tier, name) |> 
   summarize(dwellings = sum(dwellings),
             population = sum(population),
+            renters = sum(renter, na.rm = TRUE),
             # tourism_employ = sum(tourism, na.rm = TRUE) / 
               # sum(all_industry, na.rm = TRUE),
             renter_pct = sum(renter, na.rm = TRUE) / 
