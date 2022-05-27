@@ -7,6 +7,7 @@ library(future)
 plan(multisession)
 
 qs::qload("data/data.qsm", nthreads = availableCores())
+qs::qload("output/data/geometry.qsm", nthreads = availableCores())
 
 
 # Cities to look at -------------------------------------------------------
@@ -156,6 +157,15 @@ daily <-
   daily |> 
   filter(property_ID %in% property$property_ID) |> 
   left_join(select(property, property_ID, tier), by = "property_ID")
+
+
+# Add tier to GH ----------------------------------------------------------
+
+GH <- 
+  GH |> 
+  st_transform(32610) |> 
+  st_join(select(CSD, tier)) |> 
+  relocate(tier, .before = geometry)
 
 
 # Save output -------------------------------------------------------------

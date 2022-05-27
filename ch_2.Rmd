@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
-qload(here("output", "/model_chapter.qsm"))
+qload(here("output", "/ch_2.qsm"))
 
 ```
 
@@ -29,6 +29,16 @@ One of the major considerations when gauging the impacts of short-term rentals (
 At the end of 2021, there were `r freh_2021` FREH listings in the City of Toronto, and `r gh_units_2021` more housing units which were operating as ghost hostels. (We refer to these listings collectively as "dedicated STRs".) In total, therefore, short-term rentals were taking `r housing_loss_2021` housing units off of BC's long-term market at the end of the year (Figure 7). Notably, while the number of active daily listings was `r active_decline_pct_2019_2021` lower in 2021 than in 2019, the number of housing units which STRs took off of BC's housing market decreased at a much sharper rate. There were `r housing_loss_decline_pct_2019_2021` fewer dedicated STRs in 2021 (`r housing_loss_2021`) than in 2019 (`r housing_loss_2019`); province-wide, the pandemic has disproportionately affected commercial operators.
 
 ```{r fig_7}
+
+housing_loss |> 
+  ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
+  geom_col(lwd = 0) +
+  scale_fill_manual(values = col_palette[c(2, 4)]) +
+  scale_x_date(name = NULL, limits = c(as.Date("2017-07-01"), NA)) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank())
 
 ```
 
