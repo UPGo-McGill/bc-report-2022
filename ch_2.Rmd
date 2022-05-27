@@ -16,7 +16,6 @@ knitr::opts_chunk$set(warning = FALSE)
 # Function for checking file modifications
 mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
 
-# qload(here("output", "/data_processed.qsm"))
 qload(here("output", "/model_chapter.qsm"))
 
 # Set this to TRUE to output PDF figures
@@ -24,6 +23,12 @@ build_figures <- TRUE
 ```
 
 Like many other Canadian provinces, the housing market in British Columbia has been experiencing large price increases in both rents and property values, and increasingly so since the Covid-19 pandemic. This chapter uses housing data retrieved from the 2016 Canadian census and the Canadian Mortgage and Housing Corporation to determine the impact of commercially-operated short-term rentals on the rent levels in the province's Census Metropolitan Areas (CMA) and Census Agglomerations (CA). 
+
+
+## STR-induced housing loss
+
+
+
 
 ## Short-term rentals and rents
 
