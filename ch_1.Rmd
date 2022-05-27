@@ -27,7 +27,7 @@ In 2021, there was an average of `r active_all_avg_2021` short-term rental listi
 
 These figures are all dramatically lower than the same ones for 2019---before the onset of the Covid-19 pandemic. In 2019, there were `r active_avg_2019` daily active listings operated out of houses in BC ( `r active_change_pct` higher than 2021). These listings were operated by `r hosts_avg_2019` hosts (`r hosts_change_pct` higher), who collectively earned `r rev_total_2019` in revenue (`r rev_change_pct` higher), with an average of `r rev_avg_2019` (`r rev_avg_change_pct` higher) and a median of `r rev_med_2019` (`r rev_med_change_pct` higher) per listing. (In what follows, we present figures from 2021---the most recent complete year, but one which is likely to be a historic low point for the STR market due to the Covid-19 pandemic. Where relevant, we also present figures from 2019---the last full year prior to the pandemic, and hence a plausible baseline for the STR market once the pandemic has subsided.)
 
-Figure 1 displays the number of active listings per day across the province and in each of the "central city", "large urban", "small urban", "tourist destination" and "non-urban" sub-categories. The figure demonstrates that, while all types of community saw STR activity plunge at the beginning of the pandemic, the large cities have still not seen anything resembling a recovery, while other communities saw STR activity rebound over the course of 2021. These patterns will be explored in more detail below.
+Figure 1 displays the number of active listings per day across the province and in each of the "central city", "large urban", "small urban", "tourist destination" and "non-urban" sub-categories. The figure demonstrates that, while all types of community saw STR activity plunge at the beginning of the pandemic, large cities and their outskirts have still not seen anything resembling a recovery, while other communities saw STR activity rebound over the course of 2021. These patterns will be explored in more detail below.
 
 ```{r fig_1, echo = FALSE}
 
@@ -41,6 +41,7 @@ active_daily_tiers |>
   facet_wrap(~tier, scales = "free_y") +
   scale_color_brewer(palette = "Accent", guide = "none") +
   scale_y_continuous(labels = scales::comma) +
+  ggtitle("Figure 1. Active STR listings per day") +
   theme_minimal()
 
 ```
@@ -51,13 +52,58 @@ An important distinction in STR markets is between "home sharing" and "commercia
 
 One way to distinguish between commercial operators and home sharers is to look at what type of listings are operated on STR platforms. STR listings can be entire-home or private-room, and the former is much more likely to be a home sharing arrangement than the latter. (Listings can also be shared-room, but these are very rare.) The overwhelming majority of the STR listings active in 2021 were entire homes (`r eh_pct_2021`), and this proportion increased noticeably during the pandemic (from `r eh_pct_2019` in 2019), presumably in part because non-commercial STR operators have become less willing to share their homes with strangers.
 
-Another way to distinguish between home sharers and commercial operators is to examine the distribution of revenue among hosts. If revenue is evenly distributed among a large number of hosts earning modest amounts of money, that suggests that home sharing is common. If, by contrast, revenue is concentrated among a small number of high earners, that suggests that most STR activity is conducted by commercial operators, regardless of how many hosts are active on the platform. Across British Columbia, host revenue in 2021 was in fact highly concentrated. The top 10% of hosts earned TKTK% of all revenue, while the top 1% of hosts---just TKTK operators---earned TKTK% of revenue. By contrast, the median host earned \$TKTK in 2021. This pattern suggests that BC has a large number of hosts who are are casual home sharers, but that the STR market is dominated by a much smaller number of commercial operators.
+Another way to distinguish between home sharers and commercial operators is to examine the distribution of revenue among hosts. If revenue is evenly distributed among a large number of hosts earning modest amounts of money, that suggests that home sharing is common. If, by contrast, revenue is concentrated among a small number of high earners, that suggests that most STR activity is conducted by commercial operators, regardless of how many hosts are active on the platform. Across British Columbia, host revenue in 2021 was in fact highly concentrated. The top 10% of hosts earned `r host_top_10_pct` of all revenue, while the top 1% of hosts---just `r host_top_1_n` operators---earned `r host_top_1_pct` of revenue. By contrast, the median host earned `r rev_med_2021` in 2021. This pattern suggests that BC has a large number of hosts who are are casual home sharers, but that the STR market is dominated by a much smaller number of commercial operators. Figure 2 shows the distribution of host revenue for the province and each of the sub-categories. Revenue is more highly concentrated in smaller resort destinations (implying a high dominance of commercial operations), while in non-urban, non-resort communities revenue is somewhat more equitably distributed (implying more presence of genuine home sharing).
 
-Finally, one simple method of identifying commercial STR operators is to identify listings operated by hosts who have multiple listings in operation simultaneously. These "multilistings" by definition cannot be home sharing arrangements, since the host cannot have multiple principal residences. We consider entire-homes to be "multilistings" if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private- room listings operating on the same day. Since nearly all entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR.
+```{r fig_2, echo = FALSE}
 
-In 2021, TKTK% of active listings in British Columbia were multilistings, earning TKTK% of total host revenue. Multilistings had been growing steadily since 2017, both in terms of listings and revenue percentage, until the Covid-19 pandemic, when their proportion dropped somewhat TKTK.
+host_deciles |> 
+  ggplot(aes(position, value, group = decile, fill = decile)) +
+  geom_area(colour = "white", lwd = 1.2) +
+  facet_wrap(~ tier, nrow = 2) +
+  scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
+                     breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
+                     sec.axis = sec_axis(~., 
+                                         name = "% of total revenue",
+                                         labels = derive(), 
+                                         breaks = derive())) +
+  scale_fill_gradientn(colours = revenue_colour) +
+  ggtitle("Figure 2. Host revenue distribution (2021)") +
+  theme_void() +
+  theme(legend.position = "none",
+        # text = element_text(family = "Futura"),
+        axis.text.y = element_text(hjust = 1),
+        axis.title.y.left = element_text(
+          angle = 90, margin = margin(0, 10, 0, 0)),
+        axis.title.y.right = element_text(
+          angle = 270, margin = margin(0, 0, 0, 10)),
+        axis.title.x = element_blank(), 
+        axis.text.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
 
-By any of these metrics, BC's STR market is dominated by commercial operators at the expense of home sharers, who have been pushed to the margins of the market. Commercial operators are particularly common in TKTK region type, but there is no part of the province where they are not dominant.
+```
+
+Finally, one simple method of identifying commercial STR operators is to identify listings operated by hosts who have multiple listings in operation simultaneously. These "multilistings" by definition cannot be home sharing arrangements, since the host cannot have multiple principal residences. We consider entire-homes to be "multilistings" if they are operated by hosts who are simultaneously operating other entire-home listings. We define private-room multilistings as cases where a host has three or more private-room listings operating on the same day. Since nearly all entire-home listings have three or fewer bedrooms, there will be extremely few cases where a host operating three private-room STR listings in a dwelling unit has not converted the entire unit into a dedicated STR.
+
+In 2021, `r ml_pct_2021` of active listings in British Columbia were multilistings, earning `r ml_rev_pct_2021` of total host revenue. Figure 3 shows the share of all active listings which are multilistings over time. Multilistings have been growing steadily since 2017, both in terms of listings and revenue percentage, and they are much more common in resort communities and large cities than in smaller, non-resort communities.
+
+``` {r fig_3, echo = FALSE}
+
+ml_active |> 
+  group_by(tier) |> 
+  mutate(n = slider::slide_dbl(pct, mean, .before = 13)) |> 
+  ungroup() |> 
+  filter(date >= "2017-07-01", !is.na(tier)) |> 
+  ggplot() +
+  geom_line(aes(date, n, colour = tier)) +
+  facet_wrap(~tier) +
+  scale_color_brewer(palette = "Accent", guide = "none") +
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("Figure 3. Multilistings as a share of active daily listings") +
+  theme_minimal()
+
+```
+
+By any of these metrics, BC's STR market is increasingly dominated by commercial operators at the expense of home sharers, who have been pushed to the margins of the market. Commercial operators are particularly common in resort communities and large cities, but there is no part of the province where they are not dominant.
 
 ### Growth trends: pre- and post-Covid
 
