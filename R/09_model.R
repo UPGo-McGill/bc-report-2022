@@ -96,15 +96,19 @@ cmhc_zones <-
 
 # Add CSD's tier to the cmhc zone. Take the tier of the CSD that's taking
 # the most space in the zone
-cmhc_zones <-
+cmhc_zones_csds <-
   cmhc_zones |> 
   mutate(area = units::drop_units(st_area(geometry))) |> 
   st_intersection(select(CSD, name, tier)) |> 
   mutate(area_percentage = units::drop_units(st_area(geometry)) / area) |> 
   group_by(cmhc_zone) |> 
   filter(area_percentage  == max(area_percentage)) |> 
-  select(-area, -area_percentage, -name) |> 
+  select(-area, -area_percentage) |> 
   ungroup()
+
+cmhc_zones <- 
+cmhc_zones |> 
+  left_join(st_drop_geometry(cmhc_zones_csds), by = "cmhc_zone")
 
 # Add tier to cmhc data
 cmhc <- 
@@ -120,6 +124,7 @@ DA_area <-
   DA |> 
   # We only need renters
   select(ID = GeoUID, dwellings = Dwellings,
+         population = Population,
          # arts = `v_CA16_5750: 71 Arts, entertainment and recreation`,
          # accomodation = `v_CA16_5753: 72 Accommodation and food services`,
          # all_industry = `v_CA16_5699: All industry categories`,
@@ -151,8 +156,9 @@ cmhc_zones <-
          # movers_5yrs = movers_5yrs * new_da_area,
          # parent_movers_5yrs = parent_movers_5yrs * new_da_area
          ) |> 
-  group_by(cmhc_zone, tier) |> 
+  group_by(cmhc_zone, tier, name) |> 
   summarize(dwellings = sum(dwellings),
+            population = sum(population),
             # tourism_employ = sum(tourism, na.rm = TRUE) / 
               # sum(all_industry, na.rm = TRUE),
             renter_pct = sum(renter, na.rm = TRUE) / 
@@ -236,6 +242,7 @@ cmhc_str <-
       cmhc_zones |> 
       st_drop_geometry() |> 
       transmute(cmhc_zone, 
+                dwellings,
                 # tourism_employ = tourism_employ * 100,
                 renter_pct = renter_pct * 100#,
                 # movers_5yrs_pct = movers_5yrs_pct * 100,

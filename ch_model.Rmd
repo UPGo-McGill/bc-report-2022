@@ -1,6 +1,8 @@
 ---
 title: "ch_model"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: '2022-05-25'
 ---
 
@@ -16,32 +18,59 @@ knitr::opts_chunk$set(warning = FALSE)
 # Function for checking file modifications
 mtime <- function(files) lapply(Sys.glob(files), function(x) file.info(x)$mtime)
 
+qload(here("output", "/data_processed.qsm"))
 qload(here("output", "/model_chapter.qsm"))
 
 # Set this to TRUE to output PDF figures
 build_figures <- TRUE
 ```
 
-## Predict rent prices with STR activity
+Like many other Canadian provinces, the housing market in British Columbia has been experiencing large price increases in both rents and property values, and increasingly so since the Covid-19 pandemic. This chapter uses housing data retrieved from the 2016 Canadian census and the Canadian Mortgage and Housing Corporation to determine the impact of commercially-operated short-term rentals on the rent levels in the province's Census Metropolitan Areas (CMA) and Census Agglomerations (CA). 
 
-### Relationship between Frequently Rented Entire Home listings and rent prices
+## Short-term rentals and rents
+
+There have been multiple studies that have looked at the impact of short-term rentals on housing, more specifically regarding vacancy rates, rents, property values, and displacement. The growth of STRs in the past years has effectively shrunk the size of local rental markets, by converting housing units which otherwise could house residents into tourist accommodations. Additionally, by offering a new revenue stream to homeowners and potentially some tenants who are willing to become part-time home sharers, STRs have increased the economic value of residential properties. Both phenomena would be expected to increase housing costs, since there is less available housing stock, and since the economic potential of the existing stock is increased.
+
+While no empirical research exists in a Canadian context to evaluate the impact of STR growth on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in STR listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers appear small, they are being multiplied by STR listing growth rates which have been quite high, so the authors find that the growth of Airbnb is responsible for one fifth of all rent growth and one seventh of housing price growth in the United States during the study period.
+
+To answer this question in the Canadian context, we came up with our own methodology. We developed a linear regression model looking at the relationship between average rents and the percentage of frequently-rented entire home per dwellings in CMAs, CAs, and resort towns. We used the October yearly average rents disclosed by the CMHC from 2016 to 2021 for every region in British Columbia with available data. Our models shows a strong positive relationship between the concentration of FREH listings and average rents.
+
+### Predict rent prices with STR activity
 
 ```{r freh_vs_rent}
 
+rent_tier_1 <- 
+cmhc$rent |> 
+    filter(year == 2021, !is.na(tier)) |> 
+    group_by(tier) |> 
+    summarize(total = mean(total, na.rm = TRUE)) |> 
+    mutate(total = paste0("$", prettyNum(round(total), big.mark = ",")))
 
+rent_tier <- rent_tier_1$total
+names(rent_tier) <- rent_tier_1$tier
 
 ```
 
+From 2021 data, in BC, rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire home listings per dwellings had a significative predictive effect on these rents. 
+
 ```{r make_fig_CHAPNUM_1}
+
+find_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- (q3 - q1) * 1.5
+  which(x < q1 - iqr | x > q3 + iqr)
+}
 
 figure_CHAPNUM_1_fun <- function(regular = "", condensed = "") {
 
-cmhc_str |> 
-  filter(!is.na(freh_p_dwellings)) |> 
-  group_by(type, year) |> 
-  summarize(freh_p_dwellings = mean(freh_p_dwellings, na.rm = TRUE)) |> 
-  ggplot(aes(year, freh_p_dwellings, color = type)) +
-  geom_line()
+cmhc_str[-find_outliers(cmhc_str$freh_p_dwellings), ] |> 
+  mutate(year = year + 2016) |> 
+  filter(!is.na(tier)) |> 
+  ggplot(aes(freh_p_dwellings, total_rent)) +
+  geom_point(aes(color = year), size = 0.5) +
+  geom_smooth(color = "black", se = FALSE, method = "lm", level = 0.95) +
+  facet_wrap(~tier, scales = "free")
   
 }
 
@@ -54,32 +83,114 @@ if (build_figures) {
 
 ```
 
+``` {r fig-CHAPNUM-1, include = TRUE, fig.cap = '(ref:fig-CHAPNUM-1)', fig.align = "center"}
+figure_CHAPNUM_1_fun()
+```
 
-```{r make_fig_CHAPNUM_2}
+(ref:fig-CHAPNUM-1) _Positive relationship between the percentage of frequently rented entire home listings per dwellings and rent prices_
 
-find_outliers <- function(x) {
-  q1 <- quantile(x, 0.25, na.rm = TRUE)
-  q3 <- quantile(x, 0.75, na.rm = TRUE)
-  iqr <- (q3 - q1) * 1.5
-  which(x < q1 - iqr | x > q3 + iqr)
-}
 
-figure_CHAPNUM_2_fun <- function(regular = "", condensed = "") {
+Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in ervery city category, between the percentage of frequently rented entire home listings per dwellings and rent prices. The higher the former, the higher the latter. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less full-time short term rentals. 
 
-cmhc_str[-find_outliers(cmhc_str$freh_p_dwellings), ] |> 
-  filter(!is.na(type)) |> 
-  ggplot(aes(total_rent, freh_p_dwellings)) +
-  geom_point(aes(color = type)) +
-  geom_smooth(se = TRUE, method = "lm", level = 0.95, color = "black")
-  
-}
+We found 3 data points which successfully and significantly predicted average rental prices. The first is a the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second data point is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. Finally, the last coefficient is the category of the zone. The model will adjust rent prices higher in a CMA than in a non-urban zone.
 
-if (build_figures) {
-  ggsave(here("output", "figures", "figure_5_1.pdf"),
-         plot = figure_CHAPNUM_2_fun("Futura", "Futura Condensed"),
-         width = 8, height = 5, units = "in", useDingbats = FALSE)
-  extrafont::embed_fonts(here("output", "figures", "figure_5_1.pdf"))
-}
+```{r model-table, results = "asis", include=T}
+
+names(model$coefficients) <- c('FREH/dwellings', 'Renter (%)','Year (0 = 2016)','Tier - Census Agglomeration','Tier - Central City', 'Tier - Census Metropolitan Area','Tier - Non-urban','Tier - Resort')
+stargazer::stargazer(model, type = "latex", single.row = T, dep.var.labels = "Average rent")
+
 
 ```
+
+(ref:tab-model-table) _Average rent prices rent regression model using STR activity as a predictive coefficient_
+
+The model was applied to the entire population of entire home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
+
+```{r model-practical, include=T}
+
+library(kableExtra)
+
+locations <- 
+c("Core Area (Kelowna)" = "Core Area",
+  "City Center (Vancouver)" = "Hastings/Sunrise/Grandview/Woodlands",
+  "Outlying (Prince George)" = "Outlying",
+  "Newton (Surrey)" = "Newton",
+  "Summerland" = "Summerland")
+
+map2_dfr(locations, names(locations), ~{
+  
+  data <- 
+    cmhc_str |> 
+    filter(neighbourhood == .x,
+           year + 2016 == 2021)
+  
+  modeled <- 
+    data |> 
+    transmute(year = 2022 - 2016,
+              freh_p_dwellings = FREH * 1.10 / dwellings * 100)
+  
+  rise_rent_result_FREH <- 
+    (modeled$freh_p_dwellings - data$freh_p_dwellings) * 
+    model$coefficients[["freh_p_dwellings"]]
+  
+  new_rent <- 
+  # Previous rent
+  data$total_rent + 
+    # Years addition
+    (modeled$year - data$year) * model$coefficients[["year"]] +
+    # FREH per dwellings addition
+    rise_rent_result_FREH
+
+  tibble(`CMHC neighbourhood` = .y,
+         `City Tier` = case_when(data$tier == "CC" ~ "City Center",
+                                 data$tier == "CMA" ~ "Census Metropolitan Area",
+                                 data$tier == "CA" ~ "Census Agglomeration",
+                                 data$tier == "RES" ~ "Resort",
+                                 data$tier == "NU" ~ "Non-urban"),
+         `FREH/dwellings (2021)` = 
+           scales::percent(data$freh_p_dwellings/100, accuracy = 0.01),
+         `Rent (2021)` = 
+           paste0("$", prettyNum(round(data$total_rent), big.mark = ",")),
+         `FREH/dwellings (2022, expected)` = 
+           scales::percent(modeled$freh_p_dwellings/100, accuracy = 0.01),
+         `Rent (2022, expected)` = 
+           paste0("$", prettyNum(round(new_rent), big.mark = ",")),
+         `Rise due to STR activity` = 
+           paste0("$", prettyNum(round(rise_rent_result_FREH, digits = 2),
+                                 big.mark = ","))
+         )
+    
+}) |> 
+  kbl(caption = "Impact of a 10% FREH increase in the most populated CMHC neighbourhoods (per tier)",
+               align = "lrrrrr") %>% 
+  kable_styling(latex_options = "scale_down")
+
+
+```
+
+(ref:tab-model-practical) _Applied model on particular zones of interest_
+
+```{r core_area_2021}
+
+core_area_rent_2021 <- 
+  cmhc$rent |> 
+  filter(year == 2021,
+         neighbourhood == "Core Area") |> 
+  pull(total) |> 
+  (\(x) paste0("$", prettyNum(round(x), big.mark = ",")))()
+
+core_area_cmhc_str_2021 <- 
+cmhc_str |> 
+  filter(neighbourhood == "Core Area",
+         year + 2016 == 2021)
+
+```
+
+In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices
+of `r core_area_rent_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH , thus representing
+`r scales::percent(core_area_cmhc_str_2021$freh_p_dwellings/100, accuracy = 0.01)` of all dwellings. The model lets us estimate that, all other things being equal (same percentage of renters), in 2022, 200 new
+FREH on the STR market would lead to an increase of TKTK in rent, bringing
+the average rent to TKTK.
+
+
 
