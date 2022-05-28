@@ -185,9 +185,24 @@ housing_loss_daily <-
   ungroup() |> 
   select(-c(yearmon:units_trend_month))
 
-housing_loss_cc_end_2021
-housing_loss_cc_trend_end_2021
-housing_loss_cc_dif_pct_end_2021
+housing_loss_cc_end_2021 <- 
+  housing_loss_monthly_series |> 
+  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  pull(units) |> 
+  scales::comma(10)
+
+housing_loss_cc_trend_end_2021 <- 
+  housing_loss_monthly_series |> 
+  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  pull(units_trend_month) |> 
+  scales::comma(10)
+
+housing_loss_cc_dif_pct_end_2021 <- 
+  housing_loss_monthly_series |> 
+  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  summarize(dif = units_trend_month / units - 1) |> 
+  pull(dif) |> 
+  scales::percent(0.1)
 
 
 # The impact of dedicated STRs on residential rents in BC -----------------
