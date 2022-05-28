@@ -10,7 +10,11 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 
-qload(here("output", "/ch_2.qsm"))
+library(tidyverse)
+library(slider)
+qs::qload("output/data/ch_2.qsm")
+col_palette <-
+  c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
 
@@ -28,7 +32,7 @@ One of the major considerations when gauging the impacts of short-term rentals (
 
 At the end of 2021, there were `r freh_2021` FREH listings in Britsh Columbia, and `r gh_units_2021` more housing units which were operating as ghost hostels. (We refer to these listings collectively as "dedicated STRs".) In total, therefore, short-term rentals were taking `r housing_loss_2021` housing units off of BC's long-term market at the end of the year (Figure 7). In the absence of commercial STRs, in other words, there would have been `r housing_loss_2021` more homes available for BC residents to live in. Notably, while the number of active daily listings was `r active_decline_pct_2019_2021` lower in 2021 than in 2019, the number of housing units which STRs took off of BC's housing market decreased at only about half the rate. There were `r housing_loss_decline_pct_2019_2021` fewer dedicated STRs in 2021 (`r housing_loss_2021`) than in 2019 (`r housing_loss_2019`); province-wide, commercial operators have weathered the pandemic much better than home sharers.
 
-```{r fig_7}
+```{r fig_7, fig.width = 9}
 
 housing_loss |> 
   ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
@@ -49,7 +53,7 @@ As with other patterns related to STR activity during the pandemic, the large ci
 
 Using trend analysis, it is possible to estimate how much STR-induced housing loss would have been expected to have occurred in the absence of the pandemic---this counterfactual scenario establishes an important baseline for a post-pandemic housing landscape, in which short-term rentals return to their previous growth trend. Figure 8 displays the shortfall between actual STR-induced housing loss and the housing loss which would have been expected in the absence of the pandemic. In the central cities and other areas of the largest urban areas of the province, there are several thousand fewer dedicated STRs than what pre-pandemic growth trends would have predicted. In particular, at the end of 2021, there were only `r housing_loss_cc_end_2021` housing units operating as dedicated STRs in Vancouver, Victoria, and Abbotsford, while the previous trend would have predicted `r housing_loss_cc_trend_end_2021`---`r housing_loss_cc_dif_pct_end_2021` more. By contrast, resort towns and non-urban areas had very little short fall between expected and actual dedicated STRs by the end of 2021. These areas have seen relatively robust and growing tourist accommodation demand from late 2020 onward.
 
-```{r fig_8}
+```{r fig_8, fig.width = 9}
 
 housing_loss_daily |> 
   group_by(tier) |>
@@ -92,9 +96,9 @@ While no empirical research exists in a Canadian context to evaluate the impact 
 
 ### A regression model of dedicated STRs and residential rent
 
-Rents have been increasing steadily across all community types in British Columbia since 2016, when our data series begins. Figure 9 shows the change in average monthly rents in each neighbourhood in the province from 2016 to 2021. Across 2016-2021, average monthly rents were highest in the central cities (`r rent_tier[["CC"]]`) and surrounding areas (`r rent_tier[["CMA"]]`) of the largest urban regions, followed by resort towns and non-urban areas (`r rent_tier[["NU"]]`), and then mid-sized cities (`r rent_tier[["CA"]]`). (The Canada Mortgage and Housing Corporation only administers the Rental Market Survey in mid-sized and large urban regions---"census agglomerations" and "census metropolitan areas" respectively---so we lack data for many smaller communities which are nevertheless important tourist destinations. Most notably, Whistler is excluded from this analysis, as are small communities such as Tofino and Ucluelet. As a result, in this section we merge the "resort town" and "non-urban" communities into a single category.)
+Rents have been increasing steadily across all community types in British Columbia since 2016, when our data series begins. Figure 9 shows the change in average monthly rents in each neighbourhood in the province from 2016 to 2021. Across 2016-2021, average monthly rents were highest in the central cities (`r rent_tier[["CC"]]`) and surrounding areas (`r rent_tier[["CMA"]]`) of the largest urban regions, followed by resort towns and non-urban areas (`r rent_tier[["RES/NU"]]`), and then mid-sized cities (`r rent_tier[["CA"]]`). (The Canada Mortgage and Housing Corporation only administers the Rental Market Survey in mid-sized and large urban regions---"census agglomerations" and "census metropolitan areas" respectively---so we lack data for many smaller communities which are nevertheless important tourist destinations. Most notably, Whistler is excluded from this analysis, as are small communities such as Tofino and Ucluelet. As a result, in this section we merge the "resort town" and "non-urban" communities into a single category.)
 
-```{r fig_9}
+```{r fig_9, fig.width = 9}
 
 cmhc$rent |> 
   filter(!is.na(tier)) |> 
@@ -121,7 +125,7 @@ To measure the impact of STRs on housing affordability in British Columbia, we d
 
 Figure 10 shows the bivariate relationship between dedicated STRs per 100 rental units and average monthly rent for each community type. The patterns are noisy, but in each case the relationship is clear: neighbourhoods with a higher prevalence of commercial STRs have higher rents.
 
-```{r fig_10}
+```{r fig_10, fig.width = 9}
 
 find_outliers <- function(x) {
   q1 <- quantile(x, 0.25, na.rm = TRUE)
@@ -165,90 +169,6 @@ stargazer::stargazer(model_pretty, type = "latex", single.row = TRUE,
 
 ### The burden of STR activity on renter households
 
-```{r overpaid}
+Since 2016, BC tenants have paid more than \$3 trillion in rent. During the same time period, we estimate that `attributed_to_str_2016_2021` (\$`overpaid_2016_2021` billion) of this amount was due to the STR market activity. The year prior to the COVID-19 pandemic, 2019, at the peak of the STR market in British Columbia, `attributed_to_str_2019` of the total prices of rent were overpaid by tenants due to STR market activities.
 
-# All time
-total_rent_paid_2016_2021 <- 
-cmhc$rent |> 
-  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-            by = c("neighbourhood" = "cmhc_zone")) |> 
-  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
-  pull()
-
-total_rent_paid_due_STR_2016_2021 <- 
-cmhc_str |> 
-  mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
-  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-            by = c("neighbourhood" = "cmhc_zone")) |> 
-  filter(!is.na(tier)) |> 
-    summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
-  pull()
-
-attributed_to_str_2016_2021 <- 
-(total_rent_paid_due_STR_2016_2021 / 
-  total_rent_paid_2016_2021) |> 
-  scales::percent(accuracy = 0.02)
-
-overpaid_2016_2021 <- 
-total_rent_paid_due_STR_2016_2021 |> 
-  round() |> 
-  str_remove("\\d{9}$")
-
-
-# 2019
-total_rent_paid_2019 <- 
-cmhc$rent |> 
-  filter(year == 2019) |> 
-  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-            by = c("neighbourhood" = "cmhc_zone")) |> 
-  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
-  pull()
-
-total_rent_paid_due_STR_2019 <- 
-cmhc_str |> 
-    filter(year + 2016 == 2019) |> 
-  mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
-  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-            by = c("neighbourhood" = "cmhc_zone")) |> 
-  filter(!is.na(tier)) |> 
-    summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
-  pull()
-
-attributed_to_str_2019 <-
-(total_rent_paid_due_STR_2019 / 
-  total_rent_paid_2019) |> 
-  scales::percent(accuracy = 0.02)
-
-
-# Year overpaid
-every_year_overpaid <- 
-  map(set_names(2016:2021), ~{
-    total_rent_paid <- 
-      cmhc$rent |> 
-      filter(year == .x) |> 
-      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-                by = c("neighbourhood" = "cmhc_zone")) |> 
-      summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
-      pull()
-    
-    total_rent_paid_due_STR <- 
-      cmhc_str |> 
-      filter(year + 2016 == .x) |> 
-      mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
-      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-                by = c("neighbourhood" = "cmhc_zone")) |> 
-      filter(!is.na(tier)) |> 
-      summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
-      pull()
-    
-    (total_rent_paid_due_STR / 
-        total_rent_paid) |> 
-      scales::percent(accuracy = 0.02)
-    
-  })
-
-```
-
-Since 2016, BC tenants have paid more than \$3 trillion in rent. During the same time period, we estimate that `r attributed_to_str_2016_2021` (\$`r overpaid_2016_2021` billion) of this amount was due to the STR market activity. The year prior to the COVID-19 pandemic, 2019, at the peak of the STR market in British Columbia, `r attributed_to_str_2019` of the total prices of rent were overpaid by tenants due to STR market activities.
-
-From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `r every_year_overpaid[["2016"]]`, `r every_year_overpaid[["2017"]]` in 2017, `r every_year_overpaid[["2018"]]` in 2018, and `r every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years.
+From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `every_year_overpaid[["2016"]]`, `every_year_overpaid[["2017"]]` in 2017, `every_year_overpaid[["2018"]]` in 2018, and `every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years.

@@ -219,12 +219,12 @@ rent_tier_df <-
 
 rent_tier <- rent_tier_df$total
 names(rent_tier) <- rent_tier_df$tier
+cmhc_str <- select(cmhc_str, -geometry)
 
-
-
-model_iv_coef_dollar
-
-
+model_iv_coef_dollar <- scales::dollar(model$coefficients[["iv"]], 0.01)
+model_year_coef_dollar <- scales::dollar(model$coefficients[["year"]], 0.01)
+model_renter_coef_dollar <- scales::dollar(model$coefficients[["renter_pct"]], 
+                                           0.01)
 
 
 
@@ -325,7 +325,9 @@ qs::qsavem(housing_loss, freh_2021, gh_units_2021, housing_loss_2021,
            active_decline_pct_2019_2021, housing_loss_2019,
            housing_loss_decline_pct_2019_2021, housing_loss_daily,
            housing_loss_cc_end_2021, housing_loss_cc_trend_end_2021,
-           housing_loss_cc_dif_pct_end_2021, rent_tier,
+           housing_loss_cc_dif_pct_end_2021, rent_tier, cmhc, cmhc_str,
+           model, model_iv_coef_dollar, model_year_coef_dollar, 
+           model_renter_coef_dollar,
            file = "output/data/ch_2.qsm", nthreads = future::availableCores())
 
 
