@@ -159,13 +159,37 @@ daily <-
   left_join(select(property, property_ID, tier), by = "property_ID")
 
 
-# Add tier to GH ----------------------------------------------------------
+# Add daily status and tier to GH -----------------------------------------
+
+library(data.table)
+library(progressr)
+library(doFuture)
 
 GH <- 
   GH |> 
   st_transform(32610) |> 
   st_join(select(CSD, tier)) |> 
   relocate(tier, .before = geometry)
+
+daily_GH <-
+  daily %>%
+  filter(property_ID %in% unique(unlist(GH$property_IDs)))
+
+setDT(daily_GH)
+
+daily_GH <- daily_GH %>% select(property_ID:status)
+
+status_fun <- function(x, y) {
+  status <- unique(daily_GH[date == x & property_ID %in% y, status])
+  fcase("R" %in% status, "R", "A" %in% status, "A", "B" %in% status, "B")
+}
+
+status <- foreach(i = 1:nrow(GH), .combine = "c") %dopar% {
+  status_fun(GH$date[[i]], GH$property_IDs[[i]])
+  }
+
+GH$status <- status
+GH <- GH %>% select(ghost_ID, date, status, host_ID:data, tier, geometry)
 
 
 # Save output -------------------------------------------------------------

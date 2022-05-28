@@ -10,6 +10,8 @@ library(sf)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 qs::qload("output/data/FREH_model.qsm", nthreads = future::availableCores())
+cmhc <- qs::qread("output/data/cmhc.qs", nthreads = future::availableCores())
+qs::qload("output/model_chapter.qsm", nthreads = future::availableCores())
 
 
 # STR-induced housing loss ------------------------------------------------
@@ -212,10 +214,57 @@ rent_tier_1 <-
   filter(year == 2021, !is.na(tier)) |> 
   group_by(tier) |> 
   summarize(total = mean(total, na.rm = TRUE)) |> 
-  mutate(total = paste0("$", prettyNum(round(total), big.mark = ",")))
+  mutate(total = scales::dollar(total, 10))
 
 rent_tier <- rent_tier_1$total
 names(rent_tier) <- rent_tier_1$tier
+
+
+
+cmhc$rent |> 
+  mutate(tier = "All") |> 
+  bind_rows(cmhc$rent) |> 
+  select(tier, year, neighbourhood, total) |> 
+  filter(!is.na(tier)) |> 
+  ggplot(aes(year, total, colour = tier)) +
+  geom_jitter(width = 0.15, height = 0, alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_continuous(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::dollar) +
+  scale_color_brewer(palette = "Accent", guide = "none") +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = "none", panel.grid.minor.x = element_blank())
+
+
+
+
+
+
+find_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- (q3 - q1) * 1.5
+  which(x < q1 - iqr | x > q3 + iqr)
+}
+
+figure_CHAPNUM_1_fun <- function(regular = "", condensed = "") {
+  
+  cmhc_str[-find_outliers(cmhc_str$freh_p_dwellings), ] |> 
+    mutate(year = year + 2016) |> 
+    filter(!is.na(tier)) |> 
+    ggplot(aes(freh_p_dwellings, total_rent)) +
+    geom_point(aes(color = year), size = 0.5) +
+    geom_smooth(color = "black", se = FALSE, method = "lm", level = 0.95) +
+    facet_wrap(~tier, scales = "free")
+  
+}
+
+
+
+
+
+
 
 
 

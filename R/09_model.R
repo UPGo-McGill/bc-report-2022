@@ -283,10 +283,27 @@ model <- lm(total_rent ~ #avg_activity_p_dwellings +
 
 summary(model)
 
+m2 <- lmer(total_rent ~ #avg_activity_p_dwellings + 
+              # units_variation +
+              # tourism_employ +
+              freh_p_dwellings +
+              # renter_pct +
+              # movers_5yrs_pct +
+              # dwellings_value_avg +
+              year +
+              (freh_p_dwellings | tier),
+            data = cmhc_str)
+
+summary(m2)
+rePCA(m2)
+coef(m2)$tier
+
+help('isSingular')
+
 
 # Save --------------------------------------------------------------------
 
-qsavem(model, cmhc_str, cmhc_zones, cmhc, file = "output/model_chapter.qsm")
+qs::qsavem(model, cmhc_str, cmhc_zones, cmhc, file = "output/model_chapter.qsm")
 # Save cmhc_zone in the property df
 qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
            file = "output/data_processed.qsm", nthreads = availableCores())
