@@ -209,56 +209,106 @@ housing_loss_cc_dif_pct_end_2021 <-
 
 # The impact of dedicated STRs on residential rents in BC -----------------
 
-rent_tier_1 <- 
+rent_tier_df <- 
   cmhc$rent |> 
   filter(year == 2021, !is.na(tier)) |> 
+  mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
   group_by(tier) |> 
   summarize(total = mean(total, na.rm = TRUE)) |> 
   mutate(total = scales::dollar(total, 10))
 
-rent_tier <- rent_tier_1$total
-names(rent_tier) <- rent_tier_1$tier
+rent_tier <- rent_tier_df$total
+names(rent_tier) <- rent_tier_df$tier
 
 
 
-cmhc$rent |> 
-  mutate(tier = "All") |> 
-  bind_rows(cmhc$rent) |> 
-  select(tier, year, neighbourhood, total) |> 
+model_iv_coef_dollar
+
+
+
+
+
+
+# All time
+total_rent_paid_2016_2021 <- 
+  cmhc$rent |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+  pull()
+
+total_rent_paid_due_STR_2016_2021 <- 
+  cmhc_str |> 
+  mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
   filter(!is.na(tier)) |> 
-  ggplot(aes(year, total, colour = tier)) +
-  geom_jitter(width = 0.15, height = 0, alpha = 0.5) +
-  geom_smooth(method = "lm", se = FALSE) +
-  scale_x_continuous(name = NULL) +
-  scale_y_continuous(name = NULL, labels = scales::dollar) +
-  scale_color_brewer(palette = "Accent", guide = "none") +
-  facet_wrap(~tier) +
-  theme_minimal() +
-  theme(legend.position = "none", panel.grid.minor.x = element_blank())
+  summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+  pull()
+
+attributed_to_str_2016_2021 <- 
+  (total_rent_paid_due_STR_2016_2021 / 
+     total_rent_paid_2016_2021) |> 
+  scales::percent(accuracy = 0.02)
+
+overpaid_2016_2021 <- 
+  total_rent_paid_due_STR_2016_2021 |> 
+  round() |> 
+  str_remove("\\d{9}$")
 
 
+# 2019
+total_rent_paid_2019 <- 
+  cmhc$rent |> 
+  filter(year == 2019) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+  pull()
+
+total_rent_paid_due_STR_2019 <- 
+  cmhc_str |> 
+  filter(year + 2016 == 2019) |> 
+  mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  filter(!is.na(tier)) |> 
+  summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+  pull()
+
+attributed_to_str_2019 <-
+  (total_rent_paid_due_STR_2019 / 
+     total_rent_paid_2019) |> 
+  scales::percent(accuracy = 0.02)
 
 
+# Year overpaid
+every_year_overpaid <- 
+  map(set_names(2016:2021), ~{
+    total_rent_paid <- 
+      cmhc$rent |> 
+      filter(year == .x) |> 
+      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+                by = c("neighbourhood" = "cmhc_zone")) |> 
+      summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+      pull()
+    
+    total_rent_paid_due_STR <- 
+      cmhc_str |> 
+      filter(year + 2016 == .x) |> 
+      mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
+      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+                by = c("neighbourhood" = "cmhc_zone")) |> 
+      filter(!is.na(tier)) |> 
+      summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+      pull()
+    
+    (total_rent_paid_due_STR / 
+        total_rent_paid) |> 
+      scales::percent(accuracy = 0.02)
+    
+  })
 
-
-find_outliers <- function(x) {
-  q1 <- quantile(x, 0.25, na.rm = TRUE)
-  q3 <- quantile(x, 0.75, na.rm = TRUE)
-  iqr <- (q3 - q1) * 1.5
-  which(x < q1 - iqr | x > q3 + iqr)
-}
-
-figure_CHAPNUM_1_fun <- function(regular = "", condensed = "") {
-  
-  cmhc_str[-find_outliers(cmhc_str$freh_p_dwellings), ] |> 
-    mutate(year = year + 2016) |> 
-    filter(!is.na(tier)) |> 
-    ggplot(aes(freh_p_dwellings, total_rent)) +
-    geom_point(aes(color = year), size = 0.5) +
-    geom_smooth(color = "black", se = FALSE, method = "lm", level = 0.95) +
-    facet_wrap(~tier, scales = "free")
-  
-}
 
 
 
@@ -275,7 +325,7 @@ qs::qsavem(housing_loss, freh_2021, gh_units_2021, housing_loss_2021,
            active_decline_pct_2019_2021, housing_loss_2019,
            housing_loss_decline_pct_2019_2021, housing_loss_daily,
            housing_loss_cc_end_2021, housing_loss_cc_trend_end_2021,
-           housing_loss_cc_dif_pct_end_2021,
+           housing_loss_cc_dif_pct_end_2021, rent_tier,
            file = "output/data/ch_2.qsm", nthreads = future::availableCores())
 
 

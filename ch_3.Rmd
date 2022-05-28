@@ -1,0 +1,112 @@
+---
+title: "Chapter 3. Community case studies"
+author: "David Wachsmuth"
+date: '2022-05-28'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Case studies on the impact of STR market activities on rental prices
+
+The model was applied to the entire population of entire-home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
+
+```{r model-practical, include=T}
+
+library(kableExtra)
+
+locations <- 
+c("Core Area (Kelowna)" = "Core Area",
+  "City Center (Vancouver)" = "Hastings/Sunrise/Grandview/Woodlands",
+  "Outlying (Prince George)" = "Outlying",
+  "Newton (Surrey)" = "Newton",
+  "Summerland" = "Summerland")
+
+model_table <- 
+map2_dfr(locations, names(locations), ~{
+  
+  data <- 
+    cmhc_str |> 
+    filter(neighbourhood == .x,
+           year + 2016 == 2021)
+  
+  modeled <- 
+    data |> 
+    transmute(year = 2022 - 2016,
+              freh_p_dwellings = FREH * 1.10 / dwellings * 100)
+  
+  rise_rent_result_FREH <- 
+    (modeled$freh_p_dwellings - data$freh_p_dwellings) * 
+    model$coefficients[["freh_p_dwellings"]]
+  
+  new_rent <- 
+  # Previous rent
+  data$total_rent + 
+    # Years addition
+    (modeled$year - data$year) * model$coefficients[["year"]] +
+    # FREH per dwellings addition
+    rise_rent_result_FREH
+
+  tibble(`CMHC neighbourhood` = .y,
+         `City Tier` = case_when(data$tier == "CC" ~ "City Center",
+                                 data$tier == "CMA" ~ "Census Metropolitan Area",
+                                 data$tier == "CA" ~ "Census Agglomeration",
+                                 data$tier == "RES" ~ "Resort",
+                                 data$tier == "NU" ~ "Non-urban"),
+         `FREH/dwellings (2021)` = 
+           scales::percent(data$freh_p_dwellings/100, accuracy = 0.01),
+         `Rent (2021)` = 
+           paste0("$", prettyNum(round(data$total_rent), big.mark = ",")),
+         `FREH/dwellings (2022, expected)` = 
+           scales::percent(modeled$freh_p_dwellings/100, accuracy = 0.01),
+         `Rent (2022, expected)` = 
+           paste0("$", prettyNum(round(new_rent), big.mark = ",")),
+         `Rise due to STR activity` = 
+           paste0("$", prettyNum(round(rise_rent_result_FREH, digits = 2),
+                                 big.mark = ","))
+         )
+    
+}) 
+
+model_table |> 
+  kbl(caption = "Impact of a 10% FREH increase in the most populated CMHC neighbourhoods (per tier)",
+               align = "lrrrrr") %>% 
+  kable_styling(latex_options = "scale_down")
+
+
+```
+
+(ref:tab-model-practical) *Applied model on particular zones of interest*
+
+```{r core_area_2021}
+
+core_area_rent_2021 <- 
+  cmhc$rent |> 
+  filter(year == 2021,
+         neighbourhood == "Core Area") |> 
+  pull(total) |> 
+  (\(x) paste0("$", prettyNum(round(x), big.mark = ",")))()
+
+core_area_cmhc_str_2021 <- 
+cmhc_str |> 
+  filter(neighbourhood == "Core Area",
+         year + 2016 == 2021)
+
+kelowna_prices_2021 <- 
+  pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2021)"])
+
+kelowna_FREH_p_2021 <- 
+    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "FREH/dwellings (2021)"])
+
+kelowna_rent_2022 <- 
+    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2022, expected)"])
+
+kelowna_increase_due_STR <- 
+    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rise due to STR activity"])
+
+
+```
+
+In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of `r kelowna_prices_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH listings, thus representing `r kelowna_FREH_p_2021` of all dwellings. The model lets us estimate that, all other things being equal, in 2022, a 10% increase in the total number of FREH in the zone would bring the average rent to `r kelowna_rent_2022`, which `r kelowna_increase_due_STR` could by attributed to the growth in STR activity.

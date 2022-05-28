@@ -268,37 +268,13 @@ cmhc_str <-
 
 cmhc_str <- 
   cmhc_str |> 
-  mutate(year = year - 2016)
+  mutate(year = year - 2016) |> 
+  filter(!is.na(tier)) |> 
+  # Combine RES/NU because of few observation
+  mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
+  mutate(iv = freh_p_dwellings / (renter_pct / 100), .before = freh_p_dwellings)
 
-model <- lm(total_rent ~ #avg_activity_p_dwellings + 
-              # units_variation +
-              # tourism_employ +
-              freh_p_dwellings +
-              renter_pct +
-              # movers_5yrs_pct +
-              # dwellings_value_avg +
-              year +
-              tier - 1,
-            data = cmhc_str)
-
-summary(model)
-
-m2 <- lmer(total_rent ~ #avg_activity_p_dwellings + 
-              # units_variation +
-              # tourism_employ +
-              freh_p_dwellings +
-              # renter_pct +
-              # movers_5yrs_pct +
-              # dwellings_value_avg +
-              year +
-              (freh_p_dwellings | tier),
-            data = cmhc_str)
-
-summary(m2)
-rePCA(m2)
-coef(m2)$tier
-
-help('isSingular')
+model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 
 
 # Save --------------------------------------------------------------------

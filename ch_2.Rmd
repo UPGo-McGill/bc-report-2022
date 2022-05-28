@@ -88,25 +88,28 @@ housing_loss_daily |>
 
 ## The impact of dedicated STRs on residential rents in BC
 
-While no empirical research exists in a Canadian context to evaluate the impact of STRs on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in Airbnb listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers might appear small, they occurred in the context of STR growth rates which were quite high; the authors find that the growth of Airbnb was responsible for *one fifth of all rent growth and one seventh of all housing-price growth* in the United States during the study period. This finding, while not directly applicable to British Columbia, establishes an a priori rationale for testing the hypothesis that the growth of STRs in BC has had a similar impact on housing affordability.
+While no empirical research exists in a Canadian context to evaluate the impact of STRs on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in Airbnb listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers might appear small, they occurred in the context of STR growth rates which were quite high; the authors find that the growth of Airbnb was responsible for *one fifth of all rent growth and one seventh of all housing-price growth* in the United States during the study period. This finding, while not directly applicable to British Columbia, establishes an *a priori* rationale for testing the hypothesis that the growth of STRs in BC has had a similar impact on housing affordability.
 
 ### A regression model of dedicated STRs and residential rent
 
-To measure the impact of STRs on housing affordability in British Columbia, we developed a mixed-effect linear regression model predicting average rents as a function of the per-dwelling prevalence of dedicated short-term rentals. The model answers the question: "What is the predicted increase in average monthly rent in a community when the prevalence of dedicated STRs increases by one dedicated STR per 100 dwelling units?" We answer this question while controlling for year (since rents have been steadily increasing since 2016---see Figure 9), community type, and the proportion of a neighbourhood's dwelling units which are renter-occupied. (Full methodological details are available in the appendix.)
+Rents have been increasing steadily across all community types in British Columbia since 2016, when our data series begins. Figure 9 shows the change in average monthly rents in each neighbourhood in the province from 2016 to 2021. Across 2016-2021, average monthly rents were highest in the central cities (`r rent_tier[["CC"]]`) and surrounding areas (`r rent_tier[["CMA"]]`) of the largest urban regions, followed by resort towns and non-urban areas (`r rent_tier[["NU"]]`), and then mid-sized cities (`r rent_tier[["CA"]]`). (The Canada Mortgage and Housing Corporation only administers the Rental Market Survey in mid-sized and large urban regions---"census agglomerations" and "census metropolitan areas" respectively---so we lack data for many smaller communities which are nevertheless important tourist destinations. Most notably, Whistler is excluded from this analysis, as are small communities such as Tofino and Ucluelet. As a result, in this section we merge the "resort town" and "non-urban" communities into a single category.)
 
 ```{r fig_9}
 
 cmhc$rent |> 
+  filter(!is.na(tier)) |> 
   mutate(tier = "All") |> 
   bind_rows(cmhc$rent) |> 
   select(tier, year, neighbourhood, total) |> 
   filter(!is.na(tier)) |> 
+  mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
   ggplot(aes(year, total, colour = tier)) +
-  geom_jitter(width = 0.15, height = 0, alpha = 0.5) +
+  geom_line(aes(group = neighbourhood), alpha = 0.25) +
+  # geom_jitter(width = 0.15, height = 0, alpha = 0.5) +
   geom_smooth(method = "lm", se = FALSE) +
   scale_x_continuous(name = NULL) +
   scale_y_continuous(name = NULL, labels = scales::dollar) +
-  scale_color_brewer(palette = "Accent", guide = "none") +``
+  scale_color_brewer(palette = "Accent", guide = "none") +
   facet_wrap(~tier) +
   ggtitle("Average rents for CMHC neighbourhoods in BC") +
   theme_minimal() +
@@ -114,125 +117,51 @@ cmhc$rent |>
 
 ```
 
-Based on 2016-2021 data, in British Columbia, average rent prices were highest in the census metropolitan areas (`r rent_tier[["CMA"]]`) and their central cities (`r rent_tier[["CC"]]`), followed by non-urban areas (`r rent_tier[["NU"]]`), resorts (`r rent_tier[["RES"]]`) and then census agglomerations (`r rent_tier[["CA"]]`). We found that the number of frequently rented entire-home listings per dwellings had a significant predictive effect on these rents.
+To measure the impact of STRs on housing affordability in British Columbia, we developed a mixed-effect linear regression model predicting average rents as a function of the per-dwelling prevalence of dedicated short-term rentals. The model answers the question: "What is the predicted increase in average monthly rent in a community when the prevalence of dedicated STRs increases by one dedicated STR per 100 rental units?" We answer this question while controlling for year (since rents have been steadily increasing since 2016), community type, and the proportion of a neighbourhood's dwelling units which are renter-occupied. (Full methodological details are available in the appendix.)
 
-(ref:fig-CHAPNUM-1) *Positive relationship between the percentage of frequently rented entire home listings per dwellings and rent prices*
+Figure 10 shows the bivariate relationship between dedicated STRs per 100 rental units and average monthly rent for each community type. The patterns are noisy, but in each case the relationship is clear: neighbourhoods with a higher prevalence of commercial STRs have higher rents.
 
-Figure \@ref(fig:fig-5-1) illustrates the positive relationship, in every city category, between the percentage of frequently rented entire-home listings per dwellings and rent prices. The relationship is clear: the higher the percentage of FREH listings, the higher the rents. Table \@ref(tab:model-table) shows the statistical model we developed to predict the effect of more or less commercially-operated short-term rentals.
+```{r fig_10}
 
-We found three variables which successfully and significantly predicted average rental prices. The first variable is the percentage of FREH per dwellings. A rise of a point of percentage of this figure leads to a `r paste0("$", round(model$coefficients[["freh_p_dwellings"]], digits = 2))` increase in rent. The second variable is the year. Every additional year sees an increase of `r paste0("$", round(model$coefficients[["year"]], digits = 2))` in rent. This is quite intuitive, since rent prices tend to increase by a small percentage every year. Finally, the last variable of interest is the geographic region. The model predicts that rental prices should be adjusted upward more with the intercept in CMAs than in non-urban areas.
+find_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- (q3 - q1) * 1.5
+  which(x < q1 - iqr | x > q3 + iqr)
+}
 
-```{r model-table, results = "asis", include=T}
+cmhc_str[-find_outliers(cmhc_str$iv), ] |> 
+  mutate(tier = "All") |> 
+  bind_rows(cmhc_str[-find_outliers(cmhc_str$iv), ]) |> 
+  mutate(year = year + 2016) |> 
+  filter(!is.na(tier)) |> 
+  ggplot(aes(iv, total_rent)) +
+  geom_point(aes(color = year), size = 0.5) +
+  geom_smooth(color = "black", se = FALSE, method = "lm") +
+  scale_y_continuous(name = "Average monthly rent", labels = scales::dollar) +
+  scale_x_continuous(name = "Dedicated STRs per 100 rental units") +
+  scale_color_viridis_b(option = "B") +
+  ggtitle("Bivariate relationship between dedicated STRs and average monthly rent") +
+  facet_wrap(~tier) +
+  theme_minimal()
+
+```
+
+We formalize this finding in Table 1, which presents the mixed-effect regression model predicting monthly rents using the prevalence of dedicated STRs. The model accounts for nearly all of the observed variation in average monthly rents (r2 = 0.966), and confirms a strong independent effect of dedicated STRs on rents. Controlling for the other factors present in the model, an increase of one dedicated STR per 100 rental units predicts that average rents in the neighbourhood will be `r model_iv_coef_dollar` higher. (The model also finds that each year since 2016 is associated with a `r model_year_coef_dollar` increase in average rent, and that each additional percentage point of a neighbourhood's housing units which is composed of rental units is associated with a `r model_renter_coef_dollar` increase in average rent. Finally, the model offers different starting rents for each community type, assuming no commercial STRs, no renters, and the year 2016.)
+
+```{r table_1, results = "asis"}
+
 model_pretty <- model
 
-names(model_pretty$coefficients) <- c('FREH/dwellings', 'Renter (%)','Year (0 = 2016)','Tier - Census Agglomeration','Tier - Central City', 'Tier - Census Metropolitan Area','Tier - Non-urban','Tier - Resort')
-stargazer::stargazer(model_pretty, type = "latex", single.row = T, dep.var.labels = "Average rent")
+names(model_pretty$coefficients) <- 
+  c('Dedicated STRs / 100 rental units', 'Renter (%)', 'Year (0 = 2016)',
+    'Tier - census agglomeration', 'Tier - central city', 
+    'Tier - census metropolitan area', 'Tier - Resort/non-urban')
+
+stargazer::stargazer(model_pretty, type = "latex", single.row = TRUE, 
+                     dep.var.labels = "Average monthly rent")
 
 ```
-
-(ref:tab-model-table) *Average rent prices rent regression model using STR activity as a predictive coefficient*
-
-### Case studies on the impact of STR market activities on rental prices
-
-The model was applied to the entire population of entire-home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
-
-```{r model-practical, include=T}
-
-library(kableExtra)
-
-locations <- 
-c("Core Area (Kelowna)" = "Core Area",
-  "City Center (Vancouver)" = "Hastings/Sunrise/Grandview/Woodlands",
-  "Outlying (Prince George)" = "Outlying",
-  "Newton (Surrey)" = "Newton",
-  "Summerland" = "Summerland")
-
-model_table <- 
-map2_dfr(locations, names(locations), ~{
-  
-  data <- 
-    cmhc_str |> 
-    filter(neighbourhood == .x,
-           year + 2016 == 2021)
-  
-  modeled <- 
-    data |> 
-    transmute(year = 2022 - 2016,
-              freh_p_dwellings = FREH * 1.10 / dwellings * 100)
-  
-  rise_rent_result_FREH <- 
-    (modeled$freh_p_dwellings - data$freh_p_dwellings) * 
-    model$coefficients[["freh_p_dwellings"]]
-  
-  new_rent <- 
-  # Previous rent
-  data$total_rent + 
-    # Years addition
-    (modeled$year - data$year) * model$coefficients[["year"]] +
-    # FREH per dwellings addition
-    rise_rent_result_FREH
-
-  tibble(`CMHC neighbourhood` = .y,
-         `City Tier` = case_when(data$tier == "CC" ~ "City Center",
-                                 data$tier == "CMA" ~ "Census Metropolitan Area",
-                                 data$tier == "CA" ~ "Census Agglomeration",
-                                 data$tier == "RES" ~ "Resort",
-                                 data$tier == "NU" ~ "Non-urban"),
-         `FREH/dwellings (2021)` = 
-           scales::percent(data$freh_p_dwellings/100, accuracy = 0.01),
-         `Rent (2021)` = 
-           paste0("$", prettyNum(round(data$total_rent), big.mark = ",")),
-         `FREH/dwellings (2022, expected)` = 
-           scales::percent(modeled$freh_p_dwellings/100, accuracy = 0.01),
-         `Rent (2022, expected)` = 
-           paste0("$", prettyNum(round(new_rent), big.mark = ",")),
-         `Rise due to STR activity` = 
-           paste0("$", prettyNum(round(rise_rent_result_FREH, digits = 2),
-                                 big.mark = ","))
-         )
-    
-}) 
-
-model_table |> 
-  kbl(caption = "Impact of a 10% FREH increase in the most populated CMHC neighbourhoods (per tier)",
-               align = "lrrrrr") %>% 
-  kable_styling(latex_options = "scale_down")
-
-
-```
-
-(ref:tab-model-practical) *Applied model on particular zones of interest*
-
-```{r core_area_2021}
-
-core_area_rent_2021 <- 
-  cmhc$rent |> 
-  filter(year == 2021,
-         neighbourhood == "Core Area") |> 
-  pull(total) |> 
-  (\(x) paste0("$", prettyNum(round(x), big.mark = ",")))()
-
-core_area_cmhc_str_2021 <- 
-cmhc_str |> 
-  filter(neighbourhood == "Core Area",
-         year + 2016 == 2021)
-
-kelowna_prices_2021 <- 
-  pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2021)"])
-
-kelowna_FREH_p_2021 <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "FREH/dwellings (2021)"])
-
-kelowna_rent_2022 <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2022, expected)"])
-
-kelowna_increase_due_STR <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rise due to STR activity"])
-
-
-```
-
-In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of `r kelowna_prices_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH listings, thus representing `r kelowna_FREH_p_2021` of all dwellings. The model lets us estimate that, all other things being equal, in 2022, a 10% increase in the total number of FREH in the zone would bring the average rent to `r kelowna_rent_2022`, which `r kelowna_increase_due_STR` could by attributed to the growth in STR activity.
 
 ### The burden of STR activity on renter households
 
