@@ -337,7 +337,7 @@ reservations_and_prices <-
   daily |>  
   filter(housing, date >= "2017-06-01", status == "R") |> 
   group_by(date) |> 
-  summarize(res = n(), price = mean(price)) |> 
+  summarize(res = n(), price = mean(price), .groups = "drop") |> 
   mutate(tier = "All", .before = date) |> 
   bind_rows(reservations_and_prices)
 
