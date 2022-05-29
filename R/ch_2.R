@@ -10,7 +10,6 @@ library(sf)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 qs::qload("output/data/FREH_model.qsm", nthreads = future::availableCores())
-cmhc <- qs::qread("output/data/cmhc.qs", nthreads = future::availableCores())
 qs::qload("output/model_chapter.qsm", nthreads = future::availableCores())
 
 
@@ -209,6 +208,8 @@ housing_loss_cc_dif_pct_end_2021 <-
 
 # The impact of dedicated STRs on residential rents in BC -----------------
 
+# A regression model of dedicated STRs and residential rent ---------------
+
 rent_tier_df <- 
   cmhc$rent |> 
   filter(year == 2021, !is.na(tier)) |> 
@@ -227,96 +228,119 @@ model_renter_coef_dollar <- scales::dollar(model$coefficients[["renter_pct"]],
                                            0.01)
 
 
+# The burden of STRs on BC renter households ------------------------------
 
-
-# All time
-total_rent_paid_2016_2021 <- 
+rent_2016_2021 <-
   cmhc$rent |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
-  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+  select(neighbourhood, renters, total) |> 
+  summarize(sum(total * renters * 12, na.rm = TRUE)) |>
   pull()
 
-total_rent_paid_due_STR_2016_2021 <- 
+rent_2016_2021_dollar <- 
+  scales::dollar(rent_2016_2021, 0.1, scale = 1/1000000000, suffix = " billion")
+
+rent_str_2016_2021 <-
   cmhc_str |> 
   mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
   filter(!is.na(tier)) |> 
-  summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+  select(neighbourhood, FREH, iv, less_rent, renters) |> 
+  summarize(sum(less_rent * renters * 12, na.rm = TRUE)) |> 
   pull()
 
-attributed_to_str_2016_2021 <- 
-  (total_rent_paid_due_STR_2016_2021 / 
-     total_rent_paid_2016_2021) |> 
-  scales::percent(accuracy = 0.02)
+rent_str_pct_2016_2021 <- (rent_str_2016_2021 / rent_2016_2021) |> 
+  scales::percent(0.1)
 
 overpaid_2016_2021 <- 
-  total_rent_paid_due_STR_2016_2021 |> 
-  round() |> 
-  str_remove("\\d{9}$")
+  rent_str_2016_2021 |> 
+  scales::dollar(0.1, scale = 1/1000000000, suffix = " billion")
 
-
-# 2019
-total_rent_paid_2019 <- 
+rent_2019 <- 
   cmhc$rent |> 
   filter(year == 2019) |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
-  summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
+  select(neighbourhood, renters, total) |> 
+  summarize(sum(total * renters * 12, na.rm = TRUE)) |>
   pull()
 
-total_rent_paid_due_STR_2019 <- 
+rent_str_2019 <- 
   cmhc_str |> 
   filter(year + 2016 == 2019) |> 
-  mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
+  mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
             by = c("neighbourhood" = "cmhc_zone")) |> 
   filter(!is.na(tier)) |> 
-  summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
+  select(neighbourhood, FREH, iv, less_rent, renters) |> 
+  summarize(sum(less_rent * renters * 12, na.rm = TRUE)) |> 
   pull()
 
-attributed_to_str_2019 <-
-  (total_rent_paid_due_STR_2019 / 
-     total_rent_paid_2019) |> 
-  scales::percent(accuracy = 0.02)
+rent_str_pct_2019 <- (rent_str_2019 / rent_2019) |> scales::percent(0.1)
 
+rent_change_table <- 
+  cmhc_str |> 
+  mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  filter(!is.na(tier)) |> 
+  select(neighbourhood, tier, year, total_rent, iv, less_rent, renters) |> 
+  arrange(neighbourhood, year) |> 
+  group_by(neighbourhood) |> 
+  mutate(rent_change = slide_dbl(total_rent, ~.x[2] - .x[1], .before = 1,
+                                 .complete = TRUE),
+         str_change = slide_dbl(less_rent, ~.x[2] - .x[1], .before = 1,
+                                .complete = TRUE),
+         str_incr = str_change / rent_change) |> 
+  ungroup()
 
-# Year overpaid
-every_year_overpaid <- 
-  map(set_names(2016:2021), ~{
-    total_rent_paid <- 
-      cmhc$rent |> 
-      filter(year == .x) |> 
-      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-                by = c("neighbourhood" = "cmhc_zone")) |> 
-      summarize(sum(total, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |>
-      pull()
-    
-    total_rent_paid_due_STR <- 
-      cmhc_str |> 
-      filter(year + 2016 == .x) |> 
-      mutate(less_rent = freh_p_dwellings * model$coefficients[["freh_p_dwellings"]]) |> 
-      left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-                by = c("neighbourhood" = "cmhc_zone")) |> 
-      filter(!is.na(tier)) |> 
-      summarize(sum(less_rent, na.rm = TRUE) * sum(renters, na.rm = TRUE)) |> 
-      pull()
-    
-    (total_rent_paid_due_STR / 
-        total_rent_paid) |> 
-      scales::percent(accuracy = 0.02)
-    
-  })
+rent_change_table <- 
+  rent_change_table |> 
+  mutate(tier = "All") |> 
+  bind_rows(rent_change_table) |> 
+  mutate(year = case_when(year %in% 1:3 ~ "2017_2019",
+                           year == 4 ~ "2020")) |> 
+  filter(!is.na(year))
 
+rent_change_table <- 
+  rent_change_table |> 
+  group_by(year, tier) |> 
+  summarize(
+    med_rent = median(rent_change, na.rm = TRUE),
+    med_str = median(str_change, na.rm = TRUE),
+    med_incr = median(str_incr, na.rm = TRUE),
+    mean_rent = mean(rent_change, na.rm = TRUE),
+    mean_str = mean(str_change, na.rm = TRUE),
+    mean_incr = mean(str_incr, na.rm = TRUE),
+    str_incr = sum(str_change * renters, na.rm = TRUE) / 
+      sum(rent_change * renters, na.rm = TRUE),
+    .groups = "drop") |> 
+  pivot_wider(names_from = year, values_from = med_rent:str_incr) |> 
+  relocate(ends_with("2019"), .after = tier)
 
+str_incr_2017_2019 <- 
+  rent_change_table |> 
+  filter(tier == "All") |> 
+  pull(str_incr_2017_2019) |> 
+  scales::percent(0.1)
 
+rent_month_2017_2019 <- 
+  rent_change_table |> 
+  filter(tier == "All") |> 
+  pull(mean_rent_2017_2019) |> 
+  scales::dollar(01)
 
+str_incr_month_2017_2019 <- 
+  rent_change_table |> 
+  filter(tier == "All") |> 
+  pull(mean_str_2017_2019) |> 
+  scales::dollar(01)
 
-
-
-
-
+rent_change_table <- 
+  rent_change_table |> 
+  select(-starts_with("mean"))
 
 
 # Save output -------------------------------------------------------------
@@ -327,7 +351,9 @@ qs::qsavem(housing_loss, freh_2021, gh_units_2021, housing_loss_2021,
            housing_loss_cc_end_2021, housing_loss_cc_trend_end_2021,
            housing_loss_cc_dif_pct_end_2021, rent_tier, cmhc, cmhc_str,
            model, model_iv_coef_dollar, model_year_coef_dollar, 
-           model_renter_coef_dollar,
+           model_renter_coef_dollar, rent_2016_2021_dollar,
+           rent_str_pct_2016_2021, overpaid_2016_2021, rent_str_pct_2019,
+           str_incr_2017_2019, rent_month_2017_2019, str_incr_month_2017_2019,
            file = "output/data/ch_2.qsm", nthreads = future::availableCores())
 
 

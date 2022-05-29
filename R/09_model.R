@@ -274,6 +274,13 @@ cmhc_str <-
   mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
   mutate(iv = freh_p_dwellings / (renter_pct / 100), .before = freh_p_dwellings)
 
+cmhc_str <- 
+  cmhc_str |> 
+  group_by(neighbourhood, year) |> 
+  slice(1) |> 
+  ungroup()
+  
+
 model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 
 

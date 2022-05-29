@@ -167,8 +167,30 @@ stargazer::stargazer(model_pretty, type = "latex", single.row = TRUE,
 
 ```
 
-### The burden of STR activity on renter households
+### The burden of STRs on BC renter households
 
-Since 2016, BC tenants have paid more than \$3 trillion in rent. During the same time period, we estimate that `attributed_to_str_2016_2021` (\$`overpaid_2016_2021` billion) of this amount was due to the STR market activity. The year prior to the COVID-19 pandemic, 2019, at the peak of the STR market in British Columbia, `attributed_to_str_2019` of the total prices of rent were overpaid by tenants due to STR market activities.
+From 2016-2021, BC tenants in large and mid-sized cities paid `r rent_2016_2021_dollar` in rent. During the same time period, we estimate that `r rent_str_pct_2016_2021` (`r overpaid_2016_2021`) of this amount was due to the presence of commercial STRs. Put differently, if there had been no commercial STRs, BC renters would have saved `r overpaid_2016_2021` in rent. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019` of the total rents paid by tenants. This is a province-wide average; in many communities, the amount of rent increases attributable to STRs was substantially higher.
 
-From 2016 to 2019, the amount of rent overpaid by tenants was increasing. In 2016, the percentage of rent overpaid due to the STR market activity was `every_year_overpaid[["2016"]]`, `every_year_overpaid[["2017"]]` in 2017, `every_year_overpaid[["2018"]]` in 2018, and `every_year_overpaid[["2019"]]` in 2019. This suggests that the percentage of rent attributed to STR market activity would have continued to increase if it were not for the COVID-19 pandemic. However, the rate of increase was marginally decreasing, suggesting that it would have eventually reached a plateau in future years.
+Another way of framing these results is to look at the share of the *change* in rent which is attributable to the *change* in dedicated STR prevalence. The conclusion is sobering. During the 2017-2019 pre-pandemic period, the proliferation of dedicated STRs across BC accounts for fully `r str_incr_2017_2019` of the increases in rents which BC households were subjected to. The average BC neighbourhood in a medium or large city saw a `r rent_month_2017_2019` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019` can be attributed to the growth of dedicated STRs.
+
+In 2020, when the number of commercial STRs plummeted because of the pandemic, the opposite effect occurred: the return of these units to the long-term market exerted downward pressure on rising rents. Our estimate is that 2020 rents increased `r str_incr_2020` less than they otherwise would have, because of the decrease in commercial STRs that year. The average BC neighbourhood in a medium or large city saw a `r rent_month_2020` increase in monthly rent, which was `r str_incr_month_2020` less than expected because of the decline in dedicated STRs.
+
+Figure 11 and Table 2 summarize the estimated STR rent burden for each community type in BC. They make clear that an enormous proportion of the pre-pandemic increase in rent in smaller communities can be ascribed to the explosive growth of dedicated STRs in these areas. (Although the results in the "resort towns and non-urban" category should be taken as very broad estimates, since CMHC rental market data only covers a small portion of these communities province-wide, and therefore the results we have are not certain to generalize to the remaining such communities for which data is not available.) And likewise, an enormous cause of the much lower increase in average rents experienced by large central cities in 2020 can be ascribed to the collapse of those cities' STR markets during the pandemic, and the resulting return of many commercial STRs to the long-term rental market.
+
+```{r fig_11}
+
+```
+
+```{r table_2}
+
+```
+
+### Trend analysis: STR rent burden
+
+The sharp change in the impact of commercial STRs on rents in BC during the pandemic raises the question of what would have happened if commercial STRs had continued to grow on their pre-pandemic trajectory---and, more importantly, what will happen if they return to that trajectory after travel returns to normal. In the absence of significant new regulatory action, this is the most likely future scenario. Accordingly, Figure 12 extends the STR housing loss trend analysis from Figure 8, above, through the end of 2023. To be clear, it is impossible to make any concrete STR forecasts that far into the future, given the continuing uncertainty associated with the Covid pandemic, and the possibility of provincial or municipal regulatory action, but this analysis offers a plausible estimate of what a return to the pre-pandemic STR status quo would like in BC, and what the implications for renters would be.
+
+```{r fig_12}
+
+```
+
+If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023` housing units operating as dedicated STRs---a `r housing_loss_change_2021_2023` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents in medium and large cities in the province by `r rent_inc_monthly_2021_2023` above their levels at the end of 2021.
