@@ -280,7 +280,7 @@ rent_str_2019 <-
 
 rent_str_pct_2019 <- (rent_str_2019 / rent_2019) |> scales::percent(0.1)
 
-rent_change_table <- 
+rent_change_table_raw <- 
   cmhc_str |> 
   mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
   left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
@@ -296,16 +296,30 @@ rent_change_table <-
          str_incr = str_change / rent_change) |> 
   ungroup()
 
-rent_change_table <- 
-  rent_change_table |> 
+rent_change_table_raw <- 
+  rent_change_table_raw |> 
   mutate(tier = "All") |> 
-  bind_rows(rent_change_table) |> 
-  mutate(year = case_when(year %in% 1:3 ~ "2017_2019",
-                           year == 4 ~ "2020")) |> 
-  filter(!is.na(year))
+  bind_rows(rent_change_table_raw)
 
 rent_change_table <- 
-  rent_change_table |> 
+  rent_change_table_raw |> 
+  mutate(year = case_when(year %in% 1:3 ~ "2017_2019",
+                          year == 4 ~ "2020")) |> 
+  filter(!is.na(year)) |> 
+  group_by(year, tier) |> 
+  summarize(
+    med_rent = median(rent_change, na.rm = TRUE),
+    med_str = median(str_change, na.rm = TRUE),
+    med_incr = median(str_incr, na.rm = TRUE),
+    mean_rent = mean(rent_change, na.rm = TRUE),
+    mean_str = mean(str_change, na.rm = TRUE),
+    mean_incr = mean(str_incr, na.rm = TRUE),
+    str_incr = sum(str_change * renters, na.rm = TRUE) / 
+      sum(rent_change * renters, na.rm = TRUE),
+    .groups = "drop")
+
+rent_change_table_year <- 
+  rent_change_table_raw |> 
   group_by(year, tier) |> 
   summarize(
     med_rent = median(rent_change, na.rm = TRUE),
@@ -317,30 +331,71 @@ rent_change_table <-
     str_incr = sum(str_change * renters, na.rm = TRUE) / 
       sum(rent_change * renters, na.rm = TRUE),
     .groups = "drop") |> 
-  pivot_wider(names_from = year, values_from = med_rent:str_incr) |> 
-  relocate(ends_with("2019"), .after = tier)
+  filter(year != 0) |> 
+  mutate(year = 2016 + year, raw_rent = med_rent - med_str)
 
 str_incr_2017_2019 <- 
   rent_change_table |> 
-  filter(tier == "All") |> 
-  pull(str_incr_2017_2019) |> 
+  filter(tier == "All", year == "2017_2019") |> 
+  pull(str_incr) |> 
   scales::percent(0.1)
 
 rent_month_2017_2019 <- 
   rent_change_table |> 
-  filter(tier == "All") |> 
-  pull(mean_rent_2017_2019) |> 
+  filter(tier == "All", year == "2017_2019") |> 
+  pull(mean_rent) |> 
   scales::dollar(01)
 
 str_incr_month_2017_2019 <- 
   rent_change_table |> 
-  filter(tier == "All") |> 
-  pull(mean_str_2017_2019) |> 
+  filter(tier == "All", year == "2017_2019") |> 
+  pull(mean_str) |> 
   scales::dollar(01)
 
-rent_change_table <- 
+str_incr_2020 <- 
   rent_change_table |> 
-  select(-starts_with("mean"))
+  filter(tier == "All", year == "2020") |> 
+  pull(str_incr) |> 
+  abs() |> 
+  scales::percent(0.1)
+
+rent_month_2020 <- 
+  rent_change_table |> 
+  filter(tier == "All", year == "2020") |> 
+  pull(mean_rent) |> 
+  scales::dollar(01)
+
+str_incr_month_2020 <- 
+  rent_change_table |> 
+  filter(tier == "All", year == "2020") |> 
+  pull(mean_str) |> 
+  abs() |> 
+  scales::dollar(01)
+
+
+  
+
+
+
+# rent_change_table <- 
+  rent_change_table |> 
+  select(-starts_with("mean")) |> 
+  pivot_wider(names_from = year, values_from = med_rent:str_incr) |> 
+  relocate(ends_with("2019"), .after = tier) |> 
+  mutate(across(c(med_rent_2017_2019, med_str_2017_2019, med_rent_2020,
+                  med_str_2020), scales::dollar, 1),
+         across(contains("incr"), scales::percent, 0.1)) |> 
+  set_names(c("Community type", 
+              "Median annual $ change in neighbourhood monthly rent (2017-2019)",
+              "Median estimated annual $ impact of change in dedicated STRs on change in neighbourhood monthly rent (2017-2019)",
+              "Median estimated % annual impact of change in dedicated STRs on change in neighbourhood monthly rent (2017-2019)",
+              "Total estimated % annual impact of change in dedicated STRs on change in monthly rent (2017-2019)",
+              "Median annual $ change in neighbourhood monthly rent (2020)",
+              "Median estimated annual $ impact of change in dedicated STRs on change in neighbourhood monthly rent (2020)",
+              "Median estimated % annual impact of change in dedicated STRs on change in neighbourhood monthly rent (2020)",
+              "Total estimated % annual impact of change in dedicated STRs on change in monthly rent (2020)")) |> 
+    gt::gt()
+
 
 
 # Save output -------------------------------------------------------------
@@ -354,6 +409,8 @@ qs::qsavem(housing_loss, freh_2021, gh_units_2021, housing_loss_2021,
            model_renter_coef_dollar, rent_2016_2021_dollar,
            rent_str_pct_2016_2021, overpaid_2016_2021, rent_str_pct_2019,
            str_incr_2017_2019, rent_month_2017_2019, str_incr_month_2017_2019,
+           str_incr_2020, rent_month_2020, str_incr_month_2020,
+           rent_change_table, rent_change_table_year,
            file = "output/data/ch_2.qsm", nthreads = future::availableCores())
 
 

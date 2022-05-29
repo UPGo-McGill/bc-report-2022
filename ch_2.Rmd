@@ -92,7 +92,7 @@ housing_loss_daily |>
 
 ## The impact of dedicated STRs on residential rents in BC
 
-While no empirical research exists in a Canadian context to evaluate the impact of STRs on housing prices or rents, a US study answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in Airbnb listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers might appear small, they occurred in the context of STR growth rates which were quite high; the authors find that the growth of Airbnb was responsible for *one fifth of all rent growth and one seventh of all housing-price growth* in the United States during the study period. This finding, while not directly applicable to British Columbia, establishes an *a priori* rationale for testing the hypothesis that the growth of STRs in BC has had a similar impact on housing affordability.
+While no empirical research exists in a Canadian context to evaluate the impact of STRs on housing prices or rents, Barron et al. (2020) answered these questions through an examination of every US Airbnb listing between 2012 and 2016. This study found that a 1% growth in Airbnb listings in a location predicts a 0.018% increase in monthly rents and a 0.026% increase in house prices. While these numbers might appear small, they occurred in the context of STR growth rates which were quite high; the authors find that the growth of Airbnb was responsible for *one fifth of all rent growth and one seventh of all housing-price growth* in the United States during the study period. This finding, while not directly applicable to British Columbia, establishes an *a priori* rationale for testing the hypothesis that the growth of STRs in BC has had a similar impact on housing affordability.
 
 ### A regression model of dedicated STRs and residential rent
 
@@ -171,7 +171,7 @@ stargazer::stargazer(model_pretty, type = "latex", single.row = TRUE,
 
 From 2016-2021, BC tenants in large and mid-sized cities paid `r rent_2016_2021_dollar` in rent. During the same time period, we estimate that `r rent_str_pct_2016_2021` (`r overpaid_2016_2021`) of this amount was due to the presence of commercial STRs. Put differently, if there had been no commercial STRs, BC renters would have saved `r overpaid_2016_2021` in rent. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019` of the total rents paid by tenants. This is a province-wide average; in many communities, the amount of rent increases attributable to STRs was substantially higher.
 
-Another way of framing these results is to look at the share of the *change* in rent which is attributable to the *change* in dedicated STR prevalence. The conclusion is sobering. During the 2017-2019 pre-pandemic period, the proliferation of dedicated STRs across BC accounts for fully `r str_incr_2017_2019` of the increases in rents which BC households were subjected to. The average BC neighbourhood in a medium or large city saw a `r rent_month_2017_2019` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019` can be attributed to the growth of dedicated STRs.
+Another way of framing these results is to look at the share of the *change* in rent which is attributable to the *change* in dedicated STR prevalence. The conclusion is sobering. During the 2017-2019 pre-pandemic period, the proliferation of dedicated STRs across BC accounts for fully `r str_incr_2017_2019` of the increases in rents which BC households were subjected to. The average BC neighbourhood in a medium or large city saw a `r rent_month_2017_2019` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019` can be attributed to the growth of dedicated STRs. (As a plausibility check on these results, they are quite close to Barron et al. (2020)'s independent finding that approximately 20% of the rent increases in the 100 largest US cities from 2012-2016 were attributable to the growth of Airbnb.)
 
 In 2020, when the number of commercial STRs plummeted because of the pandemic, the opposite effect occurred: the return of these units to the long-term market exerted downward pressure on rising rents. Our estimate is that 2020 rents increased `r str_incr_2020` less than they otherwise would have, because of the decrease in commercial STRs that year. The average BC neighbourhood in a medium or large city saw a `r rent_month_2020` increase in monthly rent, which was `r str_incr_month_2020` less than expected because of the decline in dedicated STRs.
 
@@ -179,9 +179,50 @@ Figure 11 and Table 2 summarize the estimated STR rent burden for each community
 
 ```{r fig_11}
 
+rent_change_table_year |> 
+  select(year, tier, med_rent, raw_rent) |> 
+  pivot_longer(med_rent:raw_rent) |> 
+  arrange(year, tier, desc(name)) |> 
+  ggplot() +
+  geom_col(aes(year, value, group = name, fill = name),
+           position = position_dodge(width = -0.5)) +
+  geom_segment(data = rent_change_table_year,
+                mapping = aes(x = year, xend = year, y = raw_rent, 
+                              yend = med_rent),
+               size = 1.2,
+               arrow = arrow(length = unit(0.3, "cm")),
+               position = position_nudge(x = -0.125)) +
+  scale_y_continuous(name = NULL, labels = scales::dollar) +
+  scale_x_continuous((name = NULL)) +
+  scale_fill_brewer(name = NULL, palette = "Accent", labels = c(
+    "Actual median rent change",
+    "Estimated median rent change with no change in dedicated STRs")) +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
 ```
 
 ```{r table_2}
+
+rent_change_table |> 
+  select(-starts_with("mean")) |> 
+  pivot_wider(names_from = year, values_from = med_rent:str_incr) |> 
+  relocate(ends_with("2019"), .after = tier) |> 
+  mutate(across(c(med_rent_2017_2019, med_str_2017_2019, med_rent_2020,
+                  med_str_2020), scales::dollar, 1),
+         across(contains("incr"), scales::percent, 0.1)) |> 
+  mutate(med_str_2017_2019 = paste0(med_str_2017_2019, " (", med_incr_2017_2019, ")"),
+         med_str_2020 = paste0(med_str_2020, " (", med_incr_2020, ")")) |> 
+  select(-med_incr_2017_2019, -med_incr_2020) |> 
+set_names(c("Community type", 
+            "Median YOY monthly rent chg. (2017-19)",
+            "Median YOY impact of STR chg. on monthly rent chg. (2017-19)",
+            "Total YOY impact of STR chg. on monthly rent chg. (2017-19)",
+            "Median YOY monthly rent chg. (2020)",
+            "Median YOY impact of STR chg. on monthly rent chg. (2020)",
+            "Total YOY impact of STR chg. on monthly rent chg. (2020)")) |> 
+  gt::gt()
 
 ```
 
@@ -193,4 +234,4 @@ The sharp change in the impact of commercial STRs on rents in BC during the pand
 
 ```
 
-If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023` housing units operating as dedicated STRs---a `r housing_loss_change_2021_2023` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents in medium and large cities in the province by `r rent_inc_monthly_2021_2023` above their levels at the end of 2021.
+If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `housing_loss_2023` housing units operating as dedicated STRs---a `housing_loss_change_2021_2023` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents in medium and large cities in the province by `rent_inc_monthly_2021_2023` above their levels at the end of 2021.
