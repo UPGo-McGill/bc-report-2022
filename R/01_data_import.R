@@ -8,27 +8,28 @@ library(cancensus)
 library(future)
 plan(multisession, workers = 10)
 
-# upgo_connect()
-# 
-# property <- 
-#   property_remote |> 
-#   filter(country == "Canada", region == "British Columbia") |> 
-#   collect()
-# 
-# daily <- 
-#   daily_remote |> 
-#   filter(property_ID %in% !!property$property_ID) |> 
-#   collect()
-# 
-# host <- 
-#   host_remote |> 
-#   filter(host_ID %in% !!property$host_ID) |> 
-#   collect()
-# 
-# daily <- strr_expand(daily)
-# host <- strr_expand(host)
-# 
-# qs::qsavem(property, daily, host, file = "data/data.qsm", nthreads = 32)
+upgo_connect()
+
+property <-
+  property_remote |>
+  filter(country == "Canada", region == "British Columbia") |>
+  collect()
+
+daily <-
+  daily_remote |>
+  filter(property_ID %in% !!property$property_ID) |>
+  collect()
+
+daily <- strr_expand(daily)
+
+host <-
+  host_remote |>
+  filter(host_ID %in% !!property$host_ID) |>
+  collect()
+
+host <- strr_expand(host)
+
+qs::qsavem(property, daily, host, file = "data/data.qsm", nthreads = 32)
 # qs::qload("data/data.qsm", nthreads = 32)
 
 
@@ -148,7 +149,6 @@ CSD <-
 
 
 # Save --------------------------------------------------------------------
-
 
 qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "data/geometry.qsm", 
            nthreads = availableCores())

@@ -354,28 +354,38 @@ monthly_series <-
 # Create reservations model
 reservations_model <- 
   monthly_series |> 
-  filter(yearmon <= yearmonth("2020-02")) |> 
+  filter(yearmon <= yearmonth("2019-12")) |> 
   model(res = decomposition_model(
     STL(res, robust = TRUE), NAIVE(season_adjust)))
+
+# Create CC reservations model
+reservations_model_CC <- 
+  monthly_series |> 
+  filter(tier == "CC", yearmon <= yearmonth("2019-10")) |> 
+  model(res = decomposition_model(
+    STL(res, robust = TRUE), NAIVE(season_adjust)))
+
+reservations_model$res[reservations_model$tier == "CC"] <- 
+  reservations_model_CC$res
 
 # Create price model
 price_model <- 
   monthly_series |> 
-  filter(yearmon <= yearmonth("2020-02")) |> 
+  filter(yearmon <= yearmonth("2019-12")) |> 
   model(price = decomposition_model(
     STL(price, robust = TRUE), NAIVE(season_adjust)))
 
 # Create reservations forecast
 reservations_forecast <-
   reservations_model |> 
-  forecast(h = "24 months") |> 
+  forecast(h = "48 months") |> 
   as_tibble() |> 
   select(tier, yearmon, res_trend_month = .mean)
 
 # Create price forecast
 price_forecast <- 
   price_model |> 
-  forecast(h = "24 months") |> 
+  forecast(h = "48 months") |> 
   as_tibble() |> 
   select(tier, yearmon, price_trend_month = .mean)
 
@@ -386,15 +396,18 @@ monthly_series <-
   left_join(price_forecast, by = c("tier", "yearmon"))
 
 # Integrate forecasts into daily data
-reservations_and_prices <- 
+reservations_and_prices <-
   reservations_and_prices |> 
-  group_by(tier) |> 
-  mutate(across(c(res, price), slider::slide_dbl, ~.x[1], .before = 366, 
-                .complete = TRUE, .names = "{.col}_trend")) |> 
-  mutate(across(c(res_trend, price_trend), slider::slide_dbl, mean, 
-                .before = 6, .complete = TRUE)) |> 
-  mutate(across(c(res_trend, price_trend), 
-                ~if_else(date >= "2020-03-01", .x, NA_real_))) |> 
+  mutate(date = if_else(date == "2020-02-29", as.Date("2020-02-28"), date)) |> 
+  mutate(prepan = (tier != "CC" & date >= "2019-01-01" & date <= "2019-12-31") |
+           (tier == "CC" & date >= "2018-11-01" & date <= "2019-10-31"),
+         month = month(date), day = day(date)) |> 
+  group_by(tier, month, day) |> 
+  mutate(across(c(res, price), ~.x[prepan], .names = "{.col}_trend")) |> 
+  mutate(date = if_else(date == "2020-02-28", 
+                        as.Date(c("2020-02-28", "2020-02-29", "2020-02-28", 
+                                  "2020-02-29", "2020-02-28", "2020-02-29"))[
+                                    seq_len(n())], date)) |> 
   ungroup() |> 
   mutate(yearmon = yearmonth(date)) |> 
   left_join(select(monthly_series, -res, -price), by = c("tier", "yearmon")) |> 
@@ -402,7 +415,29 @@ reservations_and_prices <-
   mutate(res_trend = res_trend * res_trend_month / sum(res_trend),
          price_trend = price_trend * price_trend_month / mean(price_trend)) |> 
   ungroup() |> 
-  select(-c(yearmon:price_trend_month))
+  select(-c(prepan:day, yearmon:price_trend_month)) |> 
+  group_by(tier) |>
+  mutate(across(c(res_trend, price_trend), slider::slide_dbl, mean,
+                .before = 6)) |>
+  ungroup() |> 
+  mutate(across(c(res_trend, price_trend), 
+                ~ifelse(date >= "2020-03-01", .x, NA)))
+  
+res_all <- 
+  reservations_and_prices |> 
+  filter(tier != "All") |> 
+  group_by(date) |> 
+  summarize(tier = "All",
+            res_new = sum(res, na.rm = TRUE),
+            res_trend_new = sum(res_trend, na.rm = TRUE)) |> 
+  mutate(res_trend_new = if_else(date >= "2020-03-01", res_trend_new, NA_real_))
+
+reservations_and_prices <- 
+  reservations_and_prices |> 
+  left_join(res_all, by = c("tier", "date")) |> 
+  mutate(res = coalesce(res_new, res),
+         res_trend = coalesce(res_trend_new, res_trend)) |> 
+  select(-res_new, -res_trend_new)
 
 covid_res_dif <-
   reservations_and_prices |> 
@@ -461,33 +496,6 @@ covid_res_res_total <-
 covid_res_res_pct <- 
   {covid_res_res_total / (covid_res_res_dif + covid_res_res_total)} |> 
   scales::percent(0.1)
-
-price_difs <- 
-  reservations_and_prices |> 
-  mutate(price_dif = price - price_trend,
-         price_dif_pct = (price - price_trend) / price_trend) |> 
-  group_by(tier) |> 
-  summarize(max_price = max(price, na.rm = TRUE),
-            max_dif = max(price_dif, na.rm = TRUE),
-            max_dif_pct = max(price_dif_pct, na.rm = TRUE),
-            max_price_date = date[which.max(price)],
-            max_dif_date = date[which.max(price_dif)],
-            max_dif_pct_date = date[which.max(price_dif_pct)])
-
-max_price <- scales::dollar(price_difs_tf$max_price, 1)
-
-var_rise_price_tf <-
-  daily |> 
-  filter(housing, city == "Tofino", year(date) %in% c(2019, 2021),
-         month(date) <= month(max(daily$date))) |> 
-  group_by(year_2021 = year(date) == 2021) |> 
-  summarize(avg_price = mean(price)) |> 
-  summarize((avg_price[2] - avg_price[1]) / avg_price[1]) |> 
-  pull() |> 
-  scales::percent(0.1)
-
-
-
 
 
 # Save output -------------------------------------------------------------

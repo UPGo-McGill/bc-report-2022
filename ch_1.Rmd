@@ -137,6 +137,7 @@ reservations_and_prices |>
   group_by(tier) |> 
   mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
   ungroup() |> 
+  mutate(res_trend = if_else(date <= "2020-03-14", NA_real_, res_trend)) |> 
   select(tier, date, res, res_trend) |> 
   pivot_longer(-c(tier, date)) |> 
   filter(!is.na(value)) |> 
@@ -149,7 +150,9 @@ reservations_and_prices |>
               data = {reservations_and_prices |> 
                   group_by(tier) |> 
                   mutate(res = slider::slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
-                  ungroup()}, fill = col_palette[3],
+                  ungroup() |> 
+                  mutate(res_trend = if_else(date <= "2020-03-14", NA_real_, res_trend))
+                }, fill = col_palette[3],
               alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1) +
   geom_label(aes(date, value, label = label, color = name), size = 3) +
@@ -167,7 +170,7 @@ reservations_and_prices |>
 
 ```
 
-As Figure 5 suggests, the impact of the pandemic on STR reservations has been highly uneven between different types of communities in the province. In total, from March 2020 through December 2021, we estimate that there have been `r covid_res_dif` fewer STR nights reserved than would normally have been expected to occur. The `r covid_res_total` total nights reserved in this time period is only `r covid_res_pct` of the `r covid_res_trend` nights total that would represent the previous growth trend. However, an enormous amount of these "missing" reservations are concentrated in central cities. Here, actual reservations were only `r covid_cc_res_pct` of what the pre-pandemic trend would have predicted. By contrast, in resort communities, actual reservations were `r covid_res_res_pct` of the pre-pandemic trend---only two thirds of the decline experienced in central cities.
+As Figure 5 suggests, the impact of the pandemic on STR reservations has been highly uneven between different types of communities in the province. In total, from March 2020 through December 2021, we estimate that there have been `r covid_res_dif` fewer STR nights reserved than would normally have been expected to occur. The `r covid_res_total` total nights reserved in this time period is only `r covid_res_pct` of the `r covid_res_trend` nights total that would represent the previous growth trend. However, an enormous amount of these "missing" reservations are concentrated in central cities. Here, actual reservations were only `r covid_cc_res_pct` of what the pre-pandemic trend would have predicted. By contrast, in resort communities, actual reservations were `r covid_res_res_pct` of the pre-pandemic trend---only half the decline experienced in central cities.
 
 #### Trend analysis: nightly prices
 

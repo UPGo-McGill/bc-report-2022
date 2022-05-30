@@ -10,22 +10,6 @@ qs::qload("data/data.qsm", nthreads = availableCores())
 qs::qload("output/data/geometry.qsm", nthreads = availableCores())
 
 
-# Cities to look at -------------------------------------------------------
-
-top_tier <- c("Vancouver", "Victoria", "Whistler", "Richmond", "Burnaby",
-              "Surrey", "North Vancouver", "Saanich", "Coquitlam",
-              "West Vancouver")
-
-mid_tier <- c("Kelowna", "Penticton", "Vernon", "Nanaimo", "Cranbrook")
-
-resort <- c("Parksville", "Qualicum Beach", "Courtenay", "Tofino", "Ucluelet", 
-            "Osoyoos", "Oliver", "Revelstoke", "Golden", "Valemount", 
-            "Clearwater", "Smithers", "Invermere", "Radium Hot Springs", 
-            "Nelson", "Fernie", "Squamish")
-
-resource <- c("Prince George", "Fort St. John", "Prince Rupert", "Kamloops")
-
-
 # Convert to CAD ----------------------------------------------------------
 
 exchange_rates <- upgo::convert_currency(start_date = min(daily$date), 
@@ -48,43 +32,6 @@ daily <- strr_multi(daily, host)
 
 FREH <- strr_FREH(daily)
 GH <- strr_ghost(property)
-
-
-# Add region classification to property/daily -----------------------------
-
-to_remove <- c("city", "reg_type", "CSDUID", "CSDUID.x", "CSDUID.y", 
-               "CSDUID.x.x", "CSDUID.y.y", "CSDUID.x.x.x", "CSDUID.y.y.y")
-
-prop_city <- 
-  property |> 
-  strr_as_sf(32610) |> 
-  select(property_ID) |> 
-  st_intersection(CSD) |> 
-  st_drop_geometry() |> 
-  select(property_ID, city = name, CSDUID = GeoUID) |> 
-  mutate(city = str_remove(city, " \\(.*\\)$"))
-
-property <- 
-  property |> 
-  select(-any_of(to_remove)) |> 
-  left_join(prop_city, by = "property_ID") |> 
-  mutate(reg_type = case_when(
-    city %in% top_tier ~ "Top-tier",
-    city %in% mid_tier ~ "Mid-tier",
-    city %in% resource ~ "Resource",
-    city %in% resort ~ "Resort",
-    TRUE ~ "Other"))
-
-daily <- 
-  daily |> 
-  select(-any_of(to_remove)) |> 
-  left_join(prop_city, by = "property_ID") |> 
-  mutate(reg_type = case_when(
-    city %in% top_tier ~ "Top-tier",
-    city %in% mid_tier ~ "Mid-tier",
-    city %in% resource ~ "Resource",
-    city %in% resort ~ "Resort",
-    TRUE ~ "Other"))
 
 
 # Add DA ------------------------------------------------------------------
@@ -111,26 +58,11 @@ daily <-
 property <- 
   property |> 
   select(property_ID:scraped, housing:longitude, bedrooms, city, 
-         ab_property:ab_host, ha_property:ha_host, CSDUID, DAUID, reg_type)
+         ab_property:ab_host, ha_property:ha_host, CSDUID, DAUID)
 
 daily <- 
   daily |> 
-  select(property_ID:price, listing_type:housing, city, multi, CSDUID, DAUID,
-         reg_type)
-
-
-# Create property_LTM -----------------------------------------------------
-
-property_LTM <- 
-  property |> 
-  filter(created <= "2021-12-31", scraped >= "2021-01-01")
-
-property_LTM <- 
-  daily |> 
-  filter(housing, status == "R", date >= "2021-01-01") |> 
-  group_by(property_ID) |> 
-  summarize(revenue = sum(price, na.rm = TRUE)) |> 
-  right_join(property_LTM)
+  select(property_ID:price, listing_type:housing, city, multi, CSDUID, DAUID)
 
 
 # Add tier to property ----------------------------------------------------
