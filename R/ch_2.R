@@ -140,8 +140,9 @@ GH_daily <-
 
 housing_loss_daily <- 
   housing_loss_daily |> 
-  left_join(GH_daily, by = c("tier", "date")) |> 
-  mutate(units = FREH + GH) |> 
+  # left_join(GH_daily, by = c("tier", "date")) |> 
+  # mutate(units = FREH + GH) |> 
+  mutate(units = FREH) |> 
   select(tier, date, units)
 
 # Get housing loss pct
@@ -149,11 +150,12 @@ housing_loss_pct_monthly <-
   daily |> 
   filter(housing, date >= "2017-06-01") |> 
   group_by(tier, date) |> 
-  summarize(r_pct = sum(status == "R") / sum(FREH_3), .groups = "drop") |> 
+  summarize(units = sum(FREH_3),
+            r_pct = sum(status == "R") / sum(FREH_3), .groups = "drop") |> 
   tsibble::as_tsibble(key = tier, index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   group_by(tier) |> 
-  summarize(r_pct = mean(r_pct))
+  summarize(units = mean(units), r_pct = mean(r_pct))
 
 # Create housing loss pct model
 housing_loss_pct_model <- 

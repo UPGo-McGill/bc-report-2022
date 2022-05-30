@@ -106,6 +106,9 @@ GH <-
   st_join(select(CSD, tier)) |> 
   relocate(tier, .before = geometry)
 
+GH <- 
+  GH |> select(-data)
+
 daily_GH <-
   daily |> 
   filter(property_ID %in% unique(unlist(GH$property_IDs)))

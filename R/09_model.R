@@ -289,5 +289,5 @@ model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 qs::qsavem(model, cmhc_str, cmhc_zones, cmhc, 
            file = "output/data/model_chapter.qsm")
 # Save cmhc_zone in the property df
-qs::qsavem(property, daily, FREH, GH, exchange_rates,
+qs::qsavem(property, daily, GH, exchange_rates,
            file = "output/data_processed.qsm", nthreads = availableCores())
