@@ -93,9 +93,12 @@ daily <-
 
 # Add daily status and tier to GH -----------------------------------------
 
+library(sf)
 library(data.table)
 library(progressr)
 library(doFuture)
+registerDoFuture()
+plan(multisession)
 
 GH <- 
   GH |> 
@@ -104,7 +107,7 @@ GH <-
   relocate(tier, .before = geometry)
 
 daily_GH <-
-  daily %>%
+  daily |> 
   filter(property_ID %in% unique(unlist(GH$property_IDs)))
 
 setDT(daily_GH)

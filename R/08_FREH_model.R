@@ -34,8 +34,7 @@ daily <-
 # Get traditional FREH status ---------------------------------------------
 
 FREH <-
-  daily %>%
-  strr_FREH() %>%
+  FREH %>%
   filter(FREH)
 
 
@@ -65,84 +64,6 @@ monthly <-
             FREH = as.logical(ceiling(mean(FREH))),
             .groups = "drop") |> 
   left_join(select(property, property_ID, tier), by = "property_ID")
-
-
-# Get listings active for a year or more, and take the first year ---------
-
-first_year <-
-  monthly %>%
-  filter(year < 2020) %>%
-  group_by(property_ID) %>%
-  filter(n() >= 12) %>%
-  ungroup() %>%
-  filter(month_since_created <= 11) %>%
-  group_by(property_ID) %>%
-  mutate(FREH = as.logical(ceiling(mean(FREH))),
-         month = month.name[.data$month],
-         cum_R = cumsum(R),
-         cum_A = cumsum(A),
-         cum_AR = cum_A + cum_R) %>%
-  ungroup() %>%
-  select(-cum_A)
-
-
-# Fit model and apply to listings < 1 year old ----------------------------
-
-model_12 <- glm(FREH ~ cum_R + cum_AR + month_since_created + month + tier - 1,
-                data = first_year, family = binomial)
-
-model_12_results <-
-  monthly %>%
-  group_by(property_ID) %>%
-  filter(max(month_since_created) < 12) %>%
-  ungroup() %>%
-  group_by(property_ID) %>%
-  mutate(FREH = as.logical(ceiling(mean(FREH))),
-         month = month.name[.data$month],
-         cum_R = cumsum(R),
-         cum_A = cumsum(A),
-         cum_AR = cum_A + cum_R) %>%
-  ungroup() %>%
-  select(-cum_A) %>%
-  modelr::add_predictions(model_12, type = "response") %>%
-  mutate(FREH = if_else(FREH, as.numeric(FREH), pred)) %>%
-  select(-pred) %>%
-  rowwise() %>%
-  mutate(month = which(month.name == month)) %>%
-  ungroup()
-
-daily <-
-  daily %>%
-  left_join(select(monthly, property_ID, year, month, FREH),
-            by = c("property_ID", "year", "month")) %>%
-  left_join(select(model_12_results, property_ID:month, prob = FREH),
-            by = c("property_ID", "year", "month")) %>%
-  mutate(FREH = case_when(
-    !is.na(prob) ~ prob,
-    !is.na(FREH) ~ as.numeric(FREH),
-    TRUE ~ 0)) %>%
-  select(-prob)
-
-
-# Model testing -----------------------------------------------------------
-
-# Split the data into training and test set
-training_samples_12 <-
-  first_year$FREH %>%
-  createDataPartition(p = 0.80, list = FALSE)
-
-train_data_12 <- first_year[training_samples_12, ]
-test_data_12 <- first_year[-training_samples_12, ]
-
-# Fit the model
-model_12_test <- glm(FREH ~ cum_R + cum_AR + month_since_created + month + tier - 1,
-                  data = train_data_12, family = binomial)
-
-# Test model
-probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
-predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
-mean(predicted_classes_12 == test_data_12$FREH)
-# Outcome: 0.84
 
 
 # Model based on last 3 months --------------------------------------------
@@ -235,9 +156,8 @@ map(set_names(unique(train_data_3$tier)), ~{
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/data_processed.qsm",
-       nthreads = availableCores())
+qs::qsavem(property, daily, GH, file = "output/data_processed.qsm",
+           nthreads = availableCores())
 
-qsavem(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
-       model_3, model_3_results, file = "output/FREH_model.qsm",
-       nthreads = availableCores())
+qs::qsavem(FREH, monthly, after_one_year, model_3, model_3_results, 
+           file = "output/FREH_model.qsm", nthreads = availableCores())
