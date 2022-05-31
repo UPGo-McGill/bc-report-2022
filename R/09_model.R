@@ -10,8 +10,8 @@ library(qs)
 library(sf)
 
 qload("output/data_processed.qsm", nthreads = availableCores())
-cmhc <- qread("output/cmhc.qs", nthreads = availableCores())
-qload("data/geometry.qsm", nthreads = availableCores())
+cmhc <- qread("output/data/cmhc.qs", nthreads = availableCores())
+qload("output/data/geometry.qsm", nthreads = availableCores())
 
 
 # Update CMHC names to fit with zones -------------------------------------
@@ -107,7 +107,7 @@ cmhc_zones_csds <-
   ungroup()
 
 cmhc_zones <- 
-cmhc_zones |> 
+  cmhc_zones |> 
   left_join(st_drop_geometry(cmhc_zones_csds), by = "cmhc_zone")
 
 # Add tier to cmhc data
@@ -286,8 +286,8 @@ model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 
 # Save --------------------------------------------------------------------
 
-qs::qsavem(model, cmhc_str, cmhc_zones, cmhc, file = "output/model_chapter.qsm")
+qs::qsavem(model, cmhc_str, cmhc_zones, cmhc, 
+           file = "output/data/model_chapter.qsm")
 # Save cmhc_zone in the property df
-qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
+qs::qsavem(property, daily, GH, exchange_rates,
            file = "output/data_processed.qsm", nthreads = availableCores())
-

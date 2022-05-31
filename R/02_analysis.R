@@ -127,6 +127,7 @@ daily <-
 
 # Add daily status and tier to GH -----------------------------------------
 
+library(sf)
 library(data.table)
 library(doFuture)
 registerDoFuture()
@@ -138,8 +139,11 @@ GH <-
   st_join(select(CSD, tier)) |> 
   relocate(tier, .before = geometry)
 
+GH <- 
+  GH |> select(-data)
+
 daily_GH <-
-  daily %>%
+  daily |> 
   filter(property_ID %in% unique(unlist(GH$property_IDs)))
 
 setDT(daily_GH)

@@ -145,7 +145,7 @@ GH_daily <-
 housing_loss_daily <- 
   housing_loss_daily |> 
   left_join(GH_daily, by = c("tier", "date")) |> 
-  mutate(units = FREH + GH) |> 
+  mutate(units = FREH + GH) |>
   select(tier, date, units)
 
 # Create monthly time series
