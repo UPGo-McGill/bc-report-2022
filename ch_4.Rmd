@@ -34,7 +34,15 @@ The comparison shows that the active listings in Vancouver plummeted in comparis
 
 # Toronto, another regulation perspective 
 
+Starting in early 2021, all STRs in the City of Toronto must be registered. In early January, Airbnb removed 2,600 Toronto listings which had failed to do so. However, the overwhelming majority of Airbnb hosts have responded not by registering, but by setting a minimum rental length of 28 days, which exempts them from the registration requirement. To compare, in November of 2020, only 6.3% of Toronto listings had a minimum stay of 28 days or more, while at the beginning of February 2021 it was 72.2%. While it was too early to tell at the time of analysis the long-term impacts the regulations had on the Toronto STR market, we can see that offering an option for hosts not to register acts as a serious barrier to effective regulation. Toronto's registration system was successful at shifting market behavior, but by diverting properties out of the system, instead of capturing them within the system. 
 
+# Provincial efforts at regulating STRs
+
+To promote efficiency and prevent municipalities shifting the burden, the province should weigh in and establish a single registration system. This form of regulation is being considered by the Province of Quebec. In August 2021, a law project, Le projet de loi 100, was submitted to Quebec's National Assembly. These proposed regulations would make mandatory the registration of all short-term accommodations in the province, including but not limited to short-term rentals, hotels, camping sites, and B&Bs. While the proposed law is a good model, it is clear from the enforcement troubles experienced by municipalities attempting to regulate STRs that some additional elements should be considered.
+
+Indeed, it is essential that a registration system should make the platforms accountable, by allowing only registered listings to be displayed on their site. The experience of other jurisdictions shows that any conditions that allow short-term rental hosts to avoid registration will be subject to enormous pressure to provide a loophole for bad actors. The province is in a strong position to launch and enact the registration system.
+
+Another crucial element of every STR regulation is the regulation's capacity to differentiate between home sharing (i.e. principal residence) and commercial operations. The negative impacts of STRs, namely housing unaffordability, nuisance, and crime tend to be disproportionately distributed among commercially-operated STRs. The regulation of short-term rentals should not systematically encourage or discourage short-term rentals in relation to hotels, since the overall benefits are relatively similar. But there is a strong public policy case, particularly in cities, for regulations to systematically discourage commercial short-term rentals relative to casual short-term rentals, since the former are responsible for most of the negative impacts. Given the negative impact of STRs across British Columbia, the default approach of all municipalities should be to consider principal residence STRs only.
 
 
 
