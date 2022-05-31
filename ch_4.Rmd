@@ -18,3 +18,10 @@ col_palette <-
   c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
+
+The sentiments around short-term rentals are diverse. A study by Bolt and Wachsmuth (TKTK) has shown that the neighbourhoods who tended to have negative sentiments toward STRs are not necessarily the ones with high numbers of these operations, but rather the extent of the presence of housing vulnerability in the neighbourhoods. A neighbourhood with a large number of commercial STRs and high percentages of unaffordable housing, renter households and newcomers tend to be negatively disposed toward short-term rentals. In other words, when STRs make housing matters worse, communities will oppose them. In line with these findings, a growing number of municipalities and provinces both in Canada and globally have started enacting regulations around the operation of short-term rentals.
+
+The governments can use multiple methods for going about regulating STRs. One of the most crucial elements for a successful regulation of STRs is for governments to make a distinction between home sharing and commercially-operated STRs. Home sharing should be encouraged while commercial STRs should be made illegal. The evidence suggests that the most effective way to regulate STRs is through principal-residence requirements with mandatory registration. All households wishful to operate a short-term rental could do so in their residence with a valid and unique registration number. We present two stories of municipalities having regulated STRs -- Vancouver and Toronto -- and also present the Province of Quebec's law project that aims to regulate STRs at the provincial level.
+
+
+
