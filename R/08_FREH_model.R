@@ -235,9 +235,9 @@ map(set_names(unique(train_data_3$tier)), ~{
 
 # Save output -------------------------------------------------------------
 
-qsavem(property, daily, GH, file = "output/data_processed.qsm",
+qsavem(property, daily, GH, file = "output/data/data_processed.qsm",
        nthreads = availableCores())
 
 qsavem(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
-       model_3, model_3_results, file = "output/FREH_model.qsm",
+       model_3, model_3_results, file = "output/data/FREH_model.qsm",
        nthreads = availableCores())

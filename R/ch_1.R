@@ -331,7 +331,7 @@ reservations_and_prices <-
   daily |>  
   filter(housing, date >= "2017-06-01", status == "R") |> 
   group_by(tier, date) |> 
-  summarize(res = n(), price = mean(price))
+  summarize(res = n(), price = mean(price), .groups = "drop")
 
 reservations_and_prices <- 
   daily |>  
@@ -354,26 +354,19 @@ monthly_series <-
 # Create reservations model
 reservations_model <- 
   monthly_series |> 
-  filter(yearmon <= yearmonth("2019-12")) |> 
+  filter(yearmon <= yearmonth("2020-01")) |> 
   model(res = decomposition_model(
-    STL(res, robust = TRUE), NAIVE(season_adjust)))
+    STL(res, robust = TRUE), RW(season_adjust ~ drift())))
 
 # Create CC reservations model
 reservations_model_CC <- 
   monthly_series |> 
   filter(tier == "CC", yearmon <= yearmonth("2019-10")) |> 
   model(res = decomposition_model(
-    STL(res, robust = TRUE), NAIVE(season_adjust)))
+    STL(res, robust = TRUE), RW(season_adjust ~ drift())))
 
 reservations_model$res[reservations_model$tier == "CC"] <- 
   reservations_model_CC$res
-
-# Create price model
-price_model <- 
-  monthly_series |> 
-  filter(yearmon <= yearmonth("2019-12")) |> 
-  model(price = decomposition_model(
-    STL(price, robust = TRUE), NAIVE(season_adjust)))
 
 # Create reservations forecast
 reservations_forecast <-
@@ -381,6 +374,13 @@ reservations_forecast <-
   forecast(h = "48 months") |> 
   as_tibble() |> 
   select(tier, yearmon, res_trend_month = .mean)
+
+# Create price model
+price_model <- 
+  monthly_series |> 
+  filter(yearmon <= yearmonth("2019-12")) |> 
+  model(price = decomposition_model(
+    STL(price, robust = TRUE), RW(season_adjust ~ drift())))
 
 # Create price forecast
 price_forecast <- 
@@ -398,10 +398,10 @@ monthly_series <-
 # Integrate forecasts into daily data
 reservations_and_prices <-
   reservations_and_prices |> 
+  mutate(prepan = (tier != "CC" & date >= "2019-02-01" & date <= "2020-01-31") |
+           (tier == "CC" & date >= "2018-11-01" & date <= "2019-10-31")) |> 
   mutate(date = if_else(date == "2020-02-29", as.Date("2020-02-28"), date)) |> 
-  mutate(prepan = (tier != "CC" & date >= "2019-01-01" & date <= "2019-12-31") |
-           (tier == "CC" & date >= "2018-11-01" & date <= "2019-10-31"),
-         month = month(date), day = day(date)) |> 
+  mutate(month = month(date), day = day(date)) |> 
   group_by(tier, month, day) |> 
   mutate(across(c(res, price), ~.x[prepan], .names = "{.col}_trend")) |> 
   mutate(date = if_else(date == "2020-02-28", 
@@ -417,8 +417,8 @@ reservations_and_prices <-
   ungroup() |> 
   select(-c(prepan:day, yearmon:price_trend_month)) |> 
   group_by(tier) |>
-  mutate(across(c(res_trend, price_trend), slider::slide_dbl, mean,
-                .before = 6)) |>
+  mutate(across(c(res_trend, price_trend), slider::slide_dbl, mean, 
+                na.rm = TRUE, .before = 6)) |>
   ungroup() |> 
   mutate(across(c(res_trend, price_trend), 
                 ~ifelse(date >= "2020-03-01", .x, NA)))

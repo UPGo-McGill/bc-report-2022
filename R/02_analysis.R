@@ -6,7 +6,7 @@ library(sf)
 library(future)
 plan(multisession)
 
-qs::qload("data/data.qsm", nthreads = availableCores())
+qs::qload("output/data/data.qsm", nthreads = availableCores())
 qs::qload("output/data/geometry.qsm", nthreads = availableCores())
 
 
@@ -18,9 +18,47 @@ exchange_rates <- upgo::convert_currency(start_date = min(daily$date),
 daily <-
   daily  |>
   mutate(year_month = substr(date, 1, 7)) |> 
-  left_join(exchange_rates) |> 
+  left_join(exchange_rates, by = "year_month") |> 
   mutate(price = price * exchange_rate) |> 
   select(-year_month, -exchange_rate)
+
+
+# Fix data issues ---------------------------------------------------------
+
+# First change: remove most is.na(booked_date) ----------------------------
+
+set.seed(1111)
+
+daily <-
+  daily |> 
+  mutate(status = if_else(
+    status == "R" & date >= "2019-12-01" & date <= "2020-05-31" &
+      month(date) %in% c(1, 2, 3, 5, 12) & is.na(booked_date) & 
+      runif(n()) > 0.5, "A", status))
+
+
+# Second change: remove most 0-day-gaps -----------------------------------
+
+upgo_connect()
+
+daily_BC <-
+  daily_remote %>%
+  filter(country == "Canada", region == "British Columbia") %>%
+  collect()
+
+upgo_disconnect()
+
+switch_to_A <- 
+  daily_BC |> 
+  filter(start_date >= "2019-11-01", start_date <= "2020-01-31", status == "R",
+         !is.na(booked_date)) |> 
+  mutate(gap = start_date - booked_date, odds = runif(n())) |> 
+  filter(gap <= 0, (odds < 0.5 | month(start_date) == 1)) |> 
+  pull(res_ID)
+
+daily <- 
+  daily |>
+  mutate(status = if_else(res_ID %in% switch_to_A, "A", status))
 
 
 # Calculate ML ------------------------------------------------------------
@@ -42,7 +80,7 @@ DA_to_join <-
   select(property_ID) |> 
   st_intersection(DA) |> 
   st_drop_geometry() |> 
-  select(property_ID, DAUID = GeoUID)
+  select(property_ID, CSDUID = CSD_UID, DAUID = GeoUID)
 
 property <- 
   property |>
@@ -59,10 +97,6 @@ property <-
   property |> 
   select(property_ID:scraped, housing:longitude, bedrooms, city, 
          ab_property:ab_host, ha_property:ha_host, CSDUID, DAUID)
-
-daily <- 
-  daily |> 
-  select(property_ID:price, listing_type:housing, city, multi, CSDUID, DAUID)
 
 
 # Add tier to property ----------------------------------------------------
@@ -94,8 +128,9 @@ daily <-
 # Add daily status and tier to GH -----------------------------------------
 
 library(data.table)
-library(progressr)
 library(doFuture)
+registerDoFuture()
+plan(multisession)
 
 GH <- 
   GH |> 
@@ -116,15 +151,15 @@ status_fun <- function(x, y) {
   fcase("R" %in% status, "R", "A" %in% status, "A", "B" %in% status, "B")
 }
 
-status <- foreach(i = 1:nrow(GH), .combine = "c") %dopar% {
+status <- foreach(i = 1:nrow(GH), .combine = "c") %do% {
   status_fun(GH$date[[i]], GH$property_IDs[[i]])
   }
 
 GH$status <- status
-GH <- GH %>% select(ghost_ID, date, status, host_ID:data, tier, geometry)
+GH <- GH %>% select(ghost_ID, date, status, host_ID:property_IDs, tier, geometry)
 
 
 # Save output -------------------------------------------------------------
 
-qs::qsavem(property, daily, FREH, GH, host, property_LTM, exchange_rates,
-           file = "output/data_processed.qsm", nthreads = availableCores())
+qs::qsavem(property, daily, FREH, GH, exchange_rates,
+           file = "output/data/data_processed.qsm", nthreads = availableCores())

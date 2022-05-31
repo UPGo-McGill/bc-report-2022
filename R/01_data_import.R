@@ -29,7 +29,7 @@ host <-
 
 host <- strr_expand(host)
 
-qs::qsavem(property, daily, host, file = "data/data.qsm", nthreads = 32)
+qs::qsavem(property, daily, host, file = "output/data/data.qsm", nthreads = 32)
 # qs::qload("data/data.qsm", nthreads = 32)
 
 
@@ -150,5 +150,5 @@ CSD <-
 
 # Save --------------------------------------------------------------------
 
-qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "data/geometry.qsm", 
+qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "output/data/geometry.qsm", 
            nthreads = availableCores())

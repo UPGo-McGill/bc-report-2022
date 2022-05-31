@@ -10,7 +10,7 @@ library(sf)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 qs::qload("output/data/FREH_model.qsm", nthreads = future::availableCores())
-qs::qload("output/model_chapter.qsm", nthreads = future::availableCores())
+qs::qload("output/data/model_chapter.qsm", nthreads = future::availableCores())
 
 
 # STR-induced housing loss ------------------------------------------------
@@ -34,6 +34,7 @@ FREH_total <-
 GH_total <-
   GH |> 
   st_drop_geometry() |> 
+  filter(status != "B") |> 
   group_by(tier, date) |> 
   summarize(GH = sum(housing_units), .groups = "drop") |> 
   mutate(GH = slide_dbl(GH, mean, .before = 29))
@@ -41,6 +42,7 @@ GH_total <-
 GH_total <-
   GH |> 
   st_drop_geometry() |> 
+  filter(status != "B") |> 
   group_by(date) |> 
   summarize(GH = sum(housing_units), .groups = "drop") |> 
   mutate(GH = slide_dbl(GH, mean, .before = 29)) |> 
@@ -67,7 +69,7 @@ freh_2021 <-
 gh_units_2021 <- 
   GH |> 
   st_drop_geometry() |> 
-  filter(date == "2021-12-31") |> 
+  filter(date == "2021-12-31", status != "B") |> 
   summarize(units = sum(housing_units)) |> 
   pull(units) |> 
   scales::comma(10)
@@ -127,12 +129,14 @@ housing_loss_daily <-
 GH_daily <- 
   GH |> 
   st_drop_geometry() |> 
+  filter(status != "B") |> 
   group_by(tier, date) |> 
   summarize(GH = sum(housing_units), .groups = "drop")
 
 GH_daily <- 
   GH |> 
   st_drop_geometry() |> 
+  filter(status != "B") |> 
   group_by(date) |> 
   summarize(GH = sum(housing_units), .groups = "drop") |> 
   mutate(tier = "All", .before = date) |> 
@@ -143,131 +147,6 @@ housing_loss_daily <-
   left_join(GH_daily, by = c("tier", "date")) |> 
   mutate(units = FREH + GH) |> 
   select(tier, date, units)
-
-# Get housing loss pct
-housing_loss_pct_monthly <- 
-  daily |> 
-  filter(housing, date >= "2017-06-01") |> 
-  group_by(tier, date) |> 
-  summarize(r_pct = sum(status == "R") / sum(FREH_3), .groups = "drop") |> 
-  tsibble::as_tsibble(key = tier, index = date) |> 
-  tsibble::index_by(yearmon = yearmonth(date)) |> 
-  group_by(tier) |> 
-  summarize(r_pct = mean(r_pct))
-
-# Create housing loss pct model
-housing_loss_pct_model <- 
-  housing_loss_pct_monthly |> 
-  filter(yearmon <= yearmonth("2020-02"), yearmon >= yearmonth("2018-01-01")) |> 
-  model(r_pct = decomposition_model(
-    STL(r_pct, robust = TRUE), NAIVE(season_adjust)))
-
-# Create housing loss pct forecast
-housing_loss_pct_forecast <-
-  housing_loss_pct_model |> 
-  forecast(h = "48 months") |> 
-  as_tibble() |> 
-  select(tier, yearmon, r_pct_trend_month = .mean)
-
-# Integrate forecast into monthly data
-housing_loss_pct_monthly <- 
-  housing_loss_pct_monthly |>  
-  full_join(housing_loss_pct_forecast, by = c("tier", "yearmon"))
-
-# Integrate forecast into reservation data
-housing_loss_trend <- 
-  reservations_and_prices |> 
-  mutate(yearmon = yearmonth(date)) |> 
-  full_join(housing_loss_pct_monthly, by = c("tier", "yearmon")) |> 
-  mutate(units_trend = res_trend / r_pct_trend_month) |> 
-  filter(tier != "All", date >= "2020-03-01") |> 
-  select(tier, date, units_trend)
-
-housing_loss_trend <- 
-  housing_loss_trend |> 
-  group_by(date) |> 
-  summarize(units_trend = sum(units_trend)) |> 
-  mutate(tier = "All", .before = date) |> 
-  bind_rows(housing_loss_trend)
-
-housing_loss_daily |> 
-  left_join(housing_loss_trend, by = c("tier", "date")) |> 
-  group_by(tier) |> 
-  mutate(units_trend = slide_dbl(units_trend, mean, .before = 60)) |> 
-  filter(date >= "2018-01-01") |> 
-  ggplot() +
-  geom_line(aes(date, units), colour = "black") +
-  geom_line(aes(date, units_trend), colour = "red") +
-  facet_wrap(~tier, scales = "free_y")
-
-  
-
-
-# Create monthly time series
-housing_loss_monthly_series <- 
-  housing_loss_daily |> 
-  tsibble::as_tsibble(key = tier, index = date) |> 
-  tsibble::index_by(yearmon = yearmonth(date)) |> 
-  group_by(tier) |> 
-  summarize(units = mean(units))
-
-
-
-
-housing_loss_trend <- 
-  reservations_and_prices |> 
-  left_join(housing_loss_pct, by = "tier") |> 
-  mutate(units_trend = res_trend / r_pct) |> 
-  filter(tier != "All", date >= "2020-03-01") |> 
-  select(tier, date, units_trend)
-
-
-housing_loss_daily |> 
-  left_join(housing_loss_trend, by = c("tier", "date")) |> 
-  ggplot() +
-  geom_line(aes(date, units), colour = "black") +
-  geom_line(aes(date, units_trend), colour = "red") +
-  facet_wrap(~tier, scales = "free_y")
-
-
-# Get monthly coefficients
-housing_loss_coef <-
-  housing_loss_pct |> 
-  filter(yearmon >= yearmonth("2018-01-01"), 
-         yearmon <= yearmonth("2019-12-31")) |> 
-  mutate(yearmon = as.numeric(yearmon) - 576)
-
-housing_loss_coef <- 
-  housing_loss_coef |> 
-  split(housing_loss_coef$tier) |> 
-  map(~lm(units_pct ~ yearmon, data = .x)) |> 
-  map_dbl(~.x$coefficients[["yearmon"]])
-
-# Create housing loss trend
-# housing_loss_trend <- 
-  housing_loss_pct |> 
-  mutate(mn = as.numeric(yearmon) - 599) |> 
-  group_by(tier) |> 
-  mutate(coef = housing_loss_coef[[tier[1]]] * 0.99 ^ mn) |> 
-  mutate(units_pct_trend = units_pct[mn == 0] + coef * mn) |> 
-  ungroup() |>
-  mutate(units_pct_trend = if_else(mn <= 0, NA_real_, units_pct_trend)) |> 
-  filter(yearmon >= yearmonth("2018-01-01"),
-         yearmon <= yearmonth("2019-12-31")) |> 
-    ggplot() +
-    geom_line(aes(yearmon, units_pct), colour = "black") +
-    geom_line(aes(yearmon, units_pct_trend), colour = "red") +
-    facet_wrap(~tier)
-  
-
-  
-  filter(tier == "CA") |> 
-  slice(60:75)
-
-
-
-
-
 
 # Create monthly time series
 housing_loss_monthly_series <- 
@@ -280,9 +159,9 @@ housing_loss_monthly_series <-
 # Create housing loss model
 housing_loss_model <- 
   housing_loss_monthly_series |> 
-  filter(yearmon <= yearmonth("2020-02")) |> 
+  filter(yearmon <= yearmonth("2019-11")) |> 
   model(units = decomposition_model(
-    STL(units, robust = TRUE), NAIVE(season_adjust)))
+    STL(units, robust = TRUE), RW(season_adjust ~ drift())))
 
 # Create housing loss forecast
 housing_loss_forecast <-
@@ -297,12 +176,17 @@ housing_loss_monthly_series <-
   full_join(housing_loss_forecast, by = c("tier", "yearmon"))
 
 # Integrate forecast into daily data
-housing_loss_daily <-
+housing_loss_daily_model <-
   housing_loss_daily |> 
-  mutate(prepan = date >= "2019-03-01" & date <= "2020-02-29",
-         month = month(date), day = day(date)) |> 
+  mutate(prepan = date >= "2018-12-01" & date <= "2019-11-30") |> 
+  mutate(date = if_else(date == "2020-02-29", as.Date("2020-02-28"), date)) |> 
+  mutate(month = month(date), day = day(date)) |> 
   group_by(tier, month, day) |> 
   mutate(units_trend = units[prepan]) |> 
+  mutate(date = if_else(date == "2020-02-28", 
+                        as.Date(c("2020-02-28", "2020-02-29", "2020-02-28", 
+                                  "2020-02-29", "2020-02-28", "2020-02-29"))[
+                                    seq_len(n())], date)) |> 
   ungroup() |> 
   mutate(yearmon = yearmonth(date)) |> 
   full_join(select(housing_loss_monthly_series, -units), 
@@ -316,10 +200,6 @@ housing_loss_daily <-
                                          .before = 6)) |> 
   ungroup() |> 
   mutate(units_trend = if_else(date >= "2020-03-01", units_trend, NA_real_))
-
-
-
-
 
 housing_loss_cc_end_2021 <- 
   housing_loss_monthly_series |> 
