@@ -23,5 +23,19 @@ The sentiments around short-term rentals are diverse. A study by Bolt and Wachsm
 
 The governments can use multiple methods for going about regulating STRs. One of the most crucial elements for a successful regulation of STRs is for governments to make a distinction between home sharing and commercially-operated STRs. Home sharing should be encouraged while commercial STRs should be made illegal. The evidence suggests that the most effective way to regulate STRs is through principal-residence requirements with mandatory registration. All households wishful to operate a short-term rental could do so in their residence with a valid and unique registration number. We present two stories of municipalities having regulated STRs -- Vancouver and Toronto -- and also present the Province of Quebec's law project that aims to regulate STRs at the provincial level.
 
+# Vancouver, the early success story
+
+In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, defined as rentals offered for thirty or fewer consecutive days (City of
+Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit, the license being valid for one year. The listing can only be operated out of the host's principal residence, either for the entire dwelling or for individual rooms. The registration is mandatory on any rental platform, although Airbnb is the only one that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). In August 2018, shortly before the City’s announced start date for enforcement of the registration system, Airbnb removed approximately 2,400 listings which had not received licenses, which amounted to 30.8% of all displayed listings. Using trend analysis, we estimated that, by mid-2019, the Vancouver STR regulation reduced active STR listings by 1,510, or 35.8%. We also estimate that the City's regulations have returned 810 housing units to the long-term market, compared to counter-factual scenarios where no regulations were put in place. This is 38.9% of the average number of commercial STRs taking housing off the Vancouver market in the second half of 2019.
+
+While there is no way to confirm which scenario would have happened in Vancouver if it were not for the regulations, we can compare Vancouver's trajectory with that of Toronto and Montreal for all active listings and also commercial listings (which we identify as either FREH listings or multilistings). Toronto implemented STR regulations in early 2021: two years and a half after Vancouver. Montreal has varying borough-level STR regulations, but commercial operations are largely forbidden in central boroughs. However, with no registration system in place, it has been widely understood that Montreal’s enforcement mechanisms have not been sufficiently strong to significantly affect the operation of commercial STRs. Toronto and Montreal thus represent zero- or low-regulation cases with which to compare Vancouver (Figure TKTK).
+
+The comparison shows that Vancouver's market
+
+
+
+
+
+
 
 
