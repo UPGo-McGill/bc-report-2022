@@ -1,0 +1,20 @@
+---
+title: "Chapter 4. Navigating short-term rental regulation"
+author: "David Wachsmuth, Maxime Belanger de Blois and Cloe St-Hilaire"
+date: "31/05/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+
+library(tidyverse)
+library(slider)
+qs::qload("output/data/ch_2.qsm")
+col_palette <-
+  c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+```
