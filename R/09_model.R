@@ -9,7 +9,7 @@ library(future)
 library(qs)
 library(sf)
 
-qload("output/data_processed.qsm", nthreads = availableCores())
+qload("output/data/data_processed.qsm", nthreads = availableCores())
 cmhc <- qread("output/data/cmhc.qs", nthreads = availableCores())
 qload("output/data/geometry.qsm", nthreads = availableCores())
 
@@ -19,15 +19,16 @@ qload("output/data/geometry.qsm", nthreads = availableCores())
 cmhc <- 
   map(cmhc, function(dat) {
     dat |> 
-      mutate(neighbourhood = if_else(neighbourhood == "Downtown", 
-                            paste0("Downtown - ", region), neighbourhood)) |> 
+      mutate(neighbourhood = if_else(
+        neighbourhood == "Downtown", 
+        paste0("Downtown - ", region), neighbourhood)) |> 
       # Fixing some neighbourhood names to fit with the cmhc zones
-      mutate(neighbourhood = case_when(neighbourhood == "Centre" ~ "Nanaimo (Centre)",
-                                       neighbourhood == "South" ~ "Nanaimo (South)",
-                                       neighbourhood == "North & Periphery" ~ 
-                                         "Nanaimo (North & Periphery)",
-                                       neighbourhood == "Summerland DM" ~ "Summerland",
-                                       TRUE ~ neighbourhood)) 
+      mutate(neighbourhood = case_when(
+        neighbourhood == "Centre" ~ "Nanaimo (Centre)",
+        neighbourhood == "South" ~ "Nanaimo (South)",
+        neighbourhood == "North & Periphery" ~ "Nanaimo (North & Periphery)",
+        neighbourhood == "Summerland DM" ~ "Summerland",
+        TRUE ~ neighbourhood)) 
   })
 
 
@@ -185,6 +186,7 @@ row <-
 property$cmhc_zone <-
   map_chr(row, ~{if (is.na(.x)) return(NA) else cmhc_zones$cmhc_zone[.x]})
 
+
 # Add a STR activity indicator --------------------------------------------
 
 cmhc_str <-
@@ -197,6 +199,38 @@ cmhc_str <-
       filter(FREH_3 >= 0.5) |> 
       distinct(property_ID) |> 
       pull()
+    
+    FREH_total <- 
+      daily |> 
+      filter(housing, lubridate::year(date) == y) |> 
+      group_by(property_ID) |>  
+      summarize(FREH = sum(FREH_3), .groups = "drop") |> 
+      left_join(select(property, property_ID, cmhc_zone), by = "property_ID") |> 
+      group_by(cmhc_zone) |> 
+      summarize(FREH = sum(FREH))
+    
+    GH_total <-
+      GH |> 
+      filter(status != "B", lubridate::year(date) == y) |> 
+      st_join(select(cmhc_zones, cmhc_zone, geometry)) |> 
+      st_drop_geometry() |> 
+      group_by(cmhc_zone) |> 
+      summarize(GH = sum(housing_units), .groups = "drop")
+    
+    housing_loss <-
+      FREH_total |> 
+      full_join(GH_total, by = "cmhc_zone") |> 
+      mutate(across(c(FREH, GH), ~coalesce(.x, 0))) |> 
+      mutate(units = FREH + GH) |> 
+      group_by(cmhc_zone) |> 
+      summarize(housing_loss = sum(units))
+    
+    housing_loss <- 
+      housing_loss |> 
+      left_join(select(cmhc_zones, cmhc_zone = cmhc_zone,
+                    dwellings), by = "cmhc_zone") |> 
+      transmute(cmhc_zone,
+                housing_loss_p_dwellings = housing_loss / dwellings * 100 / 365)
     
     FREH_zones <- 
       property |> 
@@ -255,12 +289,13 @@ cmhc_str <-
     cmhc$rent |> 
       filter(year == y) |> 
       select(neighbourhood, year, total_rent = total) |>
+      left_join(housing_loss, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(str_activities, by = c("neighbourhood" = "cmhc_zone")) |> 
       left_join(units_variation, by = "neighbourhood") |> 
       left_join(renter_pcts, by = c("neighbourhood" = "cmhc_zone")) |>
       left_join(select(cmhc_zones, cmhc_zone, tier), 
                 by = c("neighbourhood" = "cmhc_zone")) |> 
-      # Jambes Bay is a duplicated name (for a match with the spatial data), but 
+      # James Bay is a duplicated name (for a match with the spatial data), but 
       # it's 2 neighbourhoods! So it duplicates in the left join with units variation.
       distinct()
     
@@ -272,14 +307,8 @@ cmhc_str <-
   filter(!is.na(tier)) |> 
   # Combine RES/NU because of few observation
   mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
-  mutate(iv = freh_p_dwellings / (renter_pct / 100), .before = freh_p_dwellings)
-
-cmhc_str <- 
-  cmhc_str |> 
-  group_by(neighbourhood, year) |> 
-  slice(1) |> 
-  ungroup()
-  
+  mutate(iv = housing_loss_p_dwellings / (renter_pct / 100), 
+         .before = housing_loss_p_dwellings)
 
 model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 
@@ -288,6 +317,7 @@ model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 
 qs::qsavem(model, cmhc_str, cmhc_zones, cmhc, 
            file = "output/data/model_chapter.qsm")
+
 # Save cmhc_zone in the property df
 qs::qsavem(property, daily, GH, exchange_rates,
            file = "output/data_processed.qsm", nthreads = availableCores())

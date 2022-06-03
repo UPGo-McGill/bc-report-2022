@@ -1,6 +1,5 @@
 ---
 title: "Chapter 3. Community case studies"
-author: "David Wachsmuth"
 date: '2022-05-28'
 output: pdf_document
 ---

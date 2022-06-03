@@ -18,6 +18,12 @@ col_palette <-
 
 ```
 
+## Executive summary
+
+**At the end of 2021, short-term rentals were taking `r housing_loss_2021` housing units off of BC's long-term market. This was a `r housing_loss_decline_pct_2019_2021` decline compared to 2019 (`r housing_loss_2019`), which is a much smaller decrease than the overall STR market saw; province-wide, commercial operators have weathered the pandemic much better than home sharers. We develop a regression model to measure the impact of commercial STRs on average rents in BC, and find that an increase of one dedicated STR per 100 rental units predicts that average rents in the neighbourhood will be `r model_iv_coef_dollar` higher. From 2016-2021, we estimate that, if there had been no commercial STRs, BC renters would have saved `r overpaid_2016_2021` in rent. In fact, during the 2017-2019 pre-pandemic period, the proliferation of dedicated STRs across BC accounts for fully `r str_incr_2017_2019` of the increases in rents which BC households were subjected to. The average BC neighbourhood in a medium or large city saw a `r rent_month_2017_2019` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019` can be attributed to the growth of dedicated STRs. In 2020, when the number of commercial STRs plummeted because of the pandemic, our estimate is that 2020 rents increased `r str_incr_2020` less than they otherwise would have, because of the decrease in commercial STRs that year. If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, the loss of housing to STRs will be expected to drive up average monthly rents in medium and large cities in the province by `r rent_inc_monthly_2021_2023` above their levels at the end of 2021.**
+
+## Introduction
+
 BC's housing market has been under considerable stress in the past years, with housing prices and rents rising, and rental vacancy rates falling. These are symptoms of a market where the supply of housing is insufficient to meet demand. One possible explanation for both the insufficient supply and elevated demand for housing in BC is the growth in short-term rentals. Tourists are now able to compete with residents for housing---adding demand to the local housing market---while landlords are now able to shift their properties out of the conventional housing market to become dedicated STRs---reducing the supply of conventional housing. Research has found that renting a housing unit on the STR market frequently offers landlords greater potential revenue than conventional leases (Wachsmuth & Weisler 2018), especially in transit-accessible neighborhoods (Deboosere et al. 2019). Multiple studies have also found that Airbnb and other STR platforms increase housing costs (Barron, Kung, & Proserpio 2017; Horn & Merante 2017; Garcia-Lopez et al. 2019).
 
 This chapter combines our unique dataset of STR activity in BC with housing data from the 2016 Canadian Census and the Canadian Mortgage and Housing Corporation's Rental Market Survey to determine the impact of commercially-operated short-term rentals on housing availability, measured through the number of housing units removed form the long-term market by STRs, and housing affordability, measured through average market rents.
@@ -55,7 +61,7 @@ Using trend analysis, it is possible to estimate how much STR-induced housing lo
 
 ```{r fig_8, fig.width = 9}
 
-housing_loss_daily |> 
+housing_loss_daily_model |> 
   group_by(tier) |>
   mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
   ungroup() |>
@@ -69,7 +75,7 @@ housing_loss_daily |>
   ggplot() +
   geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
               data = {
-                housing_loss_daily |> 
+                housing_loss_daily_model |> 
                   group_by(tier) |>
                   mutate(units_trend = slider::slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
                   ungroup()}, fill = col_palette[3], alpha = 0.3) +
@@ -230,8 +236,42 @@ set_names(c("Community type",
 
 The sharp change in the impact of commercial STRs on rents in BC during the pandemic raises the question of what would have happened if commercial STRs had continued to grow on their pre-pandemic trajectory---and, more importantly, what will happen if they return to that trajectory after travel returns to normal. In the absence of significant new regulatory action, this is the most likely future scenario. Accordingly, Figure 12 extends the STR housing loss trend analysis from Figure 8, above, through the end of 2023. To be clear, it is impossible to make any concrete STR forecasts that far into the future, given the continuing uncertainty associated with the Covid pandemic, and the possibility of provincial or municipal regulatory action, but this analysis offers a plausible estimate of what a return to the pre-pandemic STR status quo would like in BC, and what the implications for renters would be.
 
-```{r fig_12}
+```{r fig_12, fig.width = 9}
+
+housing_loss_daily_model_2023 |> 
+  group_by(tier) |>
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
+  ungroup() |>
+  select(tier, date, units, units_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2019-05-05" & name == "units" ~ "Actual housing loss", 
+    tier == "All" & date == "2020-03-07" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_2023 |> 
+                  group_by(tier) |>
+                  mutate(units_trend = slider::slide_dbl(
+                    units_trend, mean, .before = 6, .complete = TRUE)) |>
+                  ungroup()}, fill = col_palette[3], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 1)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
 
 ```
 
-If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `housing_loss_2023` housing units operating as dedicated STRs---a `housing_loss_change_2021_2023` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents in medium and large cities in the province by `rent_inc_monthly_2021_2023` above their levels at the end of 2021.
+If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023` housing units operating as dedicated STRs---a `r housing_loss_change_2021_2023` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents in medium and large cities in the province by `r rent_inc_monthly_2021_2023` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023` the average renter household will be paying per year because of the growth of commercial STRs---`r rent_total_2021_2023` in total each year.
