@@ -5,107 +5,176 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-### Case studies on the impact of STR market activities on rental prices
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 
-The model was applied to the entire population of entire-home STR in British Columbia that was present in a CMHC neighbourhood zone, where we have access to rent prices data. As examples of what this model entails, Table \@ref(tab:tab-pred) shows case studies for given locations of interest, their rent prices in 2021, the expected rise in the number of FREH in 2022 (From the trend analysis model previously visited TKTKTKTKTK), and the impact it might have on rent prices.
+library(tidyverse)
+library(sf)
+library(slider)
+library(patchwork)
 
-```{r model-practical, include=T}
-
-library(kableExtra)
-
-locations <- 
-c("Core Area (Kelowna)" = "Core Area",
-  "City Center (Vancouver)" = "Hastings/Sunrise/Grandview/Woodlands",
-  "Outlying (Prince George)" = "Outlying",
-  "Newton (Surrey)" = "Newton",
-  "Summerland" = "Summerland")
-
-model_table <- 
-map2_dfr(locations, names(locations), ~{
-  
-  data <- 
-    cmhc_str |> 
-    filter(neighbourhood == .x,
-           year + 2016 == 2021)
-  
-  modeled <- 
-    data |> 
-    transmute(year = 2022 - 2016,
-              freh_p_dwellings = FREH * 1.10 / dwellings * 100)
-  
-  rise_rent_result_FREH <- 
-    (modeled$freh_p_dwellings - data$freh_p_dwellings) * 
-    model$coefficients[["freh_p_dwellings"]]
-  
-  new_rent <- 
-  # Previous rent
-  data$total_rent + 
-    # Years addition
-    (modeled$year - data$year) * model$coefficients[["year"]] +
-    # FREH per dwellings addition
-    rise_rent_result_FREH
-
-  tibble(`CMHC neighbourhood` = .y,
-         `City Tier` = case_when(data$tier == "CC" ~ "City Center",
-                                 data$tier == "CMA" ~ "Census Metropolitan Area",
-                                 data$tier == "CA" ~ "Census Agglomeration",
-                                 data$tier == "RES" ~ "Resort",
-                                 data$tier == "NU" ~ "Non-urban"),
-         `FREH/dwellings (2021)` = 
-           scales::percent(data$freh_p_dwellings/100, accuracy = 0.01),
-         `Rent (2021)` = 
-           paste0("$", prettyNum(round(data$total_rent), big.mark = ",")),
-         `FREH/dwellings (2022, expected)` = 
-           scales::percent(modeled$freh_p_dwellings/100, accuracy = 0.01),
-         `Rent (2022, expected)` = 
-           paste0("$", prettyNum(round(new_rent), big.mark = ",")),
-         `Rise due to STR activity` = 
-           paste0("$", prettyNum(round(rise_rent_result_FREH, digits = 2),
-                                 big.mark = ","))
-         )
-    
-}) 
-
-model_table |> 
-  kbl(caption = "Impact of a 10% FREH increase in the most populated CMHC neighbourhoods (per tier)",
-               align = "lrrrrr") %>% 
-  kable_styling(latex_options = "scale_down")
-
+qs::qload("output/data/ch_3.qsm")
+qs::qload("output/data/geometry.qsm")
+col_palette <-
+  c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
 
-(ref:tab-model-practical) *Applied model on particular zones of interest*
+## Case studies
 
-```{r core_area_2021}
+TKTK map of case study locations
 
-core_area_rent_2021 <- 
-  cmhc$rent |> 
-  filter(year == 2021,
-         neighbourhood == "Core Area") |> 
-  pull(total) |> 
-  (\(x) paste0("$", prettyNum(round(x), big.mark = ",")))()
 
-core_area_cmhc_str_2021 <- 
-cmhc_str |> 
-  filter(neighbourhood == "Core Area",
-         year + 2016 == 2021)
 
-kelowna_prices_2021 <- 
-  pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2021)"])
 
-kelowna_FREH_p_2021 <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "FREH/dwellings (2021)"])
 
-kelowna_rent_2022 <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rent (2022, expected)"])
+## Nanaimo
 
-kelowna_increase_due_STR <- 
-    pull(model_table[str_detect(model_table$`CMHC neighbourhood`, "Kelowna"), "Rise due to STR activity"])
+The city of Nanaimo, on the eastern coast of Vancouver Island, has a population of just under 100,000. In 2021, there was an average of `r active_avg_2021_N` STR listings active each day in Nanaimo, compared with `r active_avg_2019_N` in 2019. These listings were operated by `r hosts_avg_2021_N` hosts (compared to `r hosts_avg_2019_N` in 2019), who collectively earned `r rev_total_2021_N` in revenue (compared to `r rev_total_2019_N` in 2019), with an average of `r rev_avg_2021_N` per listing (compared to `r rev_avg_2019_N` in 2019) and a median of `r rev_med_2021_N` (compared to `r rev_med_2019_N` in 2019).
 
+Figure X displays the number of active listings per day in Nanaimo, expressed as a percentage of all dwelling units. Compared to other mid-sized cities in BC, Nanaimo has a lower-than-average number of active STRs. Figure X shows the distribution of these STRs in 2021.
+
+```{r fig_N_1, echo = FALSE}
+
+active_daily_N |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, group = name), colour = alpha("grey50", 5),
+            lwd = 0.1) +
+  geom_line(aes(date, n_pct, group = name, colour = Nanaimo), lwd = 2,
+            data = filter(active_daily_N, !is.na(Nanaimo))) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, limits = c(0, 0.02), labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = c("grey30", "red"), 
+                      na.value = "transparent") +
+  ggtitle("Figure X. Active listings as % of all dwelling units") + 
+  theme_minimal() +
+  theme(legend.position = "bottom")
 
 ```
 
-In 2021, the core area CMHC neighbourhood of Kelowna had average rent prices of `r kelowna_prices_2021`. Out of the `r prettyNum(round(core_area_cmhc_str_2021$dwellings), big.mark = ",")` dwellings, `r prettyNum(round(core_area_cmhc_str_2021$FREH), big.mark = ",")` were FREH listings, thus representing `r kelowna_FREH_p_2021` of all dwellings. The model lets us estimate that, all other things being equal, in 2022, a 10% increase in the total number of FREH in the zone would bring the average rent to `r kelowna_rent_2022`, which `r kelowna_increase_due_STR` could by attributed to the growth in STR activity.
+``` {r fig_N_2}
+
+property_N |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90") +
+  geom_sf(data = streets_N, colour = "white") +
+  geom_sf(data = streets_N_2, colour = "white", lwd = 0.5) +
+  geom_sf(aes(colour = listing_type), size = 0.5) +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "transparent") +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Nanaimo"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Nanaimo"))[c(2, 4)]) +
+  scale_colour_discrete(name = NULL) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+```
+
+Since the pandemic, Nanaimo's STR market has followed a similar trajectory to other communities which receive significant tourism flows from within BC. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_N` of what would have been expected for this time period. But, at the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been elevated `r covid_price_pct_N` over their in Nanaimo. This combination of fewer reservations at higher prices is consistent with the TKTK.
+
+```{r fig_N_3, fig.width = 9}
+
+p1 <- reservations_and_prices_N |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_N |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend))
+                }, fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p2 <- reservations_and_prices_N |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-02-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_N |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p1 + p2
+
+```
+
+
+``` {r fig_N_4, fig.width = 9}
+
+housing_loss_daily_model_N |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-07" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_N |> 
+                  mutate(units_trend = slider::slide_dbl(units_trend, mean, .before = 6, .complete = TRUE))}, fill = col_palette[3], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+```
+
+
+
+
+

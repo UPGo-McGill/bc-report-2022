@@ -147,8 +147,12 @@ CSD <-
   # The rest is non urban
   mutate(tier = if_else(is.na(tier), "NU", tier))
 
+CSD <- 
+  CSD |> 
+  mutate(name = str_remove(name, " \\([^\\(]*\\)$"))
+
 
 # Save --------------------------------------------------------------------
 
 qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "output/data/geometry.qsm", 
-           nthreads = availableCores())
+           nthreads = future::availableCores())
