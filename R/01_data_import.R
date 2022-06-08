@@ -151,8 +151,13 @@ CSD <-
   CSD |> 
   mutate(name = str_remove(name, " \\([^\\(]*\\)$"))
 
+water <- 
+  read_sf("data/shapefiles/lhy_000c16a_e.shp") |> 
+  filter(PRUID == "59")
+
 
 # Save --------------------------------------------------------------------
 
-qs::qsavem(CT, CMA, CSD, DA, CSD, province, file = "output/data/geometry.qsm", 
+qs::qsavem(CT, CMA, CSD, DA, CSD, province, water, 
+           file = "output/data/geometry.qsm", 
            nthreads = future::availableCores())

@@ -307,8 +307,7 @@ cmhc_str <-
   filter(!is.na(tier)) |> 
   # Combine RES/NU because of few observation
   mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
-  mutate(iv = housing_loss_p_dwellings / (renter_pct / 100), 
-         .before = housing_loss_p_dwellings)
+  rename(iv = housing_loss_p_dwellings)
 
 model <- lm(total_rent ~ iv + renter_pct + year + tier - 1, data = cmhc_str)
 

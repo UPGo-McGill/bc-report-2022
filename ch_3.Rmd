@@ -17,6 +17,7 @@ library(patchwork)
 
 qs::qload("output/data/ch_3.qsm")
 qs::qload("output/data/geometry.qsm")
+qs::qload("output/data/model_chapter.qsm")
 col_palette <-
   c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -26,26 +27,19 @@ col_palette <-
 
 TKTK map of case study locations
 
+## Richmond
 
+The city of Richmond, the third largest municipality in the Metro Vancouver region, has a population of 210,000. In 2021, there was an average of `r active_avg_2021_R` STR listings active each day in Richmond---far lower than the `r active_avg_2019_R` active in 2019. These listings were operated by `r hosts_avg_2021_R` hosts (compared to `r hosts_avg_2019_R` in 2019), who collectively earned `r rev_total_2021_R` in revenue (just half the `r rev_total_2019_R` in 2019), with an average of `r rev_avg_2021_R` per listing (compared to `r rev_avg_2019_R` in 2019) and a median of `r rev_med_2021_R` (compared to `r rev_med_2019_R` in 2019).
 
+Figure X displays the number of active listings per day in Richmond, expressed as a percentage of all dwelling units. Compared to other non-core municipalities in the largest urban regions in BC, Richmond had a higher prevalence of STRs in 2019. Richmond's STR market also weathered the first year of the pandemic better than other municipalities in its category, but over the course of 2021 STR activity in Richmond stagnated at the same time as it began to recovery in other large-region municipalities. Figure X shows the distribution of these STRs in 2021, as actual locations in the left panel and as a share of dwelling units in the right panel.
 
+```{r fig_R_1, echo = FALSE}
 
-## Nanaimo
-
-The city of Nanaimo, on the eastern coast of Vancouver Island, has a population of just under 100,000. In 2021, there was an average of `r active_avg_2021_N` STR listings active each day in Nanaimo, compared with `r active_avg_2019_N` in 2019. These listings were operated by `r hosts_avg_2021_N` hosts (compared to `r hosts_avg_2019_N` in 2019), who collectively earned `r rev_total_2021_N` in revenue (compared to `r rev_total_2019_N` in 2019), with an average of `r rev_avg_2021_N` per listing (compared to `r rev_avg_2019_N` in 2019) and a median of `r rev_med_2021_N` (compared to `r rev_med_2019_N` in 2019).
-
-Figure X displays the number of active listings per day in Nanaimo, expressed as a percentage of all dwelling units. Compared to other mid-sized cities in BC, Nanaimo has a lower-than-average number of active STRs. Figure X shows the distribution of these STRs in 2021.
-
-```{r fig_N_1, echo = FALSE}
-
-active_daily_N |> 
+active_daily_R |> 
   ggplot() +
-  geom_line(aes(date, n_pct, group = name), colour = alpha("grey50", 5),
-            lwd = 0.1) +
-  geom_line(aes(date, n_pct, group = name, colour = Nanaimo), lwd = 2,
-            data = filter(active_daily_N, !is.na(Nanaimo))) +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1.5) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = NULL, limits = c(0, 0.02), labels = scales::percent) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
   scale_colour_manual(name = NULL, values = c("grey30", "red"), 
                       na.value = "transparent") +
   ggtitle("Figure X. Active listings as % of all dwelling units") + 
@@ -54,28 +48,247 @@ active_daily_N |>
 
 ```
 
-``` {r fig_N_2}
+```{r fig_R_2, fig.width = 9}
 
-property_N |> 
+fig_R_2_left <- 
+  property_R |> 
   filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
   st_transform(32610) |> 
   ggplot() +
   geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
-  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90") +
-  geom_sf(data = streets_N, colour = "white") +
-  geom_sf(data = streets_N_2, colour = "white", lwd = 0.5) +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_R, colour = "#FFFFFF90") +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
   geom_sf(aes(colour = listing_type), size = 0.5) +
-  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "transparent") +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  scale_colour_discrete(name = NULL) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+fig_R_2_right <- 
+  CT |> 
+  inner_join(listings_pct_R) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_R, colour = "#FFFFFF90") +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_viridis_b(name = "Active STR listings as % of dwelling units",
+                       labels = scales::percent, n.breaks = 8) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+fig_R_2_left + fig_R_2_right + ggtitle("Figure X. Active STR listings in Richmond")
+
+```
+
+Since the pandemic, Richmond's STR market has collapsed---similarly to other municipalities in large urban regions in BC. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_R` of what would have been expected for this time period. At the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been `r covid_price_pct_R` lower than the pre-pandemic trend. This combination of fewer reservations at lower prices demonstrates a collapse in STR demand in Richmond, and is consistent with the pattern we have observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand in the major cities to fall dramatically.
+
+```{r fig_R_3, fig.width = 9}
+
+p1 <- reservations_and_prices_R |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_R |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend))
+                }, fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p2 <- reservations_and_prices_R |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-02-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_R |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p1 + p2
+
+```
+
+Both before and during the pandemic, Richmond's STR market has been dominated by commercial operators. On average from 2018-2021, `r commercial_pct_R` of listings active each day in Richmond have been frequently rented entire-home listings or ghost hostels, which means they are highly unlikely to be the host's principal residence. Figure X shows the total amount of STR-induced housing loss in Richmond, and demonstrates that, in the absence of the pandemic, there would likely be nearly 600 housing units converted to full-time STRs in the city.
+
+```{r fig_R_4, fig.width = 9}
+
+dat <- 
+  housing_loss_daily_model_R |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31")
+
+dat |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-07" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = dat, fill = col_palette[3], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+```
+
+From 2016-2021, our province-wide model suggests that renters in Richmond paid `r overpaid_2016_2021_R` more in rent because of the presence of commercial STRs driving up rents. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019_R` of the total rents paid by Richmond tenants. Put differently, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs in Richmond accounts for `r str_incr_2017_2019_R` of the increases in rents which Richmond households were subjected to. The average Richmond neighbourhood saw a `r rent_month_2017_2019_R` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019_R` can be attributed to the growth of dedicated STRs.
+
+In 2020, when the number of commercial STRs plummeted because of the pandemic, we estimate that rents increased `r str_incr_2020_R` less than they otherwise would have, because of the decrease in commercial STRs that year. But if the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023_R` housing units operating as dedicated STRs in Richmond---a `r housing_loss_change_2021_2023_R` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents by `r rent_inc_monthly_2021_2023_R` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023_R` the average Richmond renter household will be paying per year because of the growth of commercial STRs. Figure X shows the forecasted percentage and absolute rent increases which Richmond renters will experience in 2023 if the quantity of commercial STRs returns to its pre-pandemic trend.
+
+```{r fig_R_5, fig.width = 9}
+
+rent_change_2023_table_R |> 
+  left_join(filter(cmhc_str, year == 5)) |> 
+  mutate(label = scales::dollar(str_2023, 1, prefix = "+$")) |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(aes(fill = rent_2023_pct), colour = "white") +
+  geom_sf(data = streets_R, colour = "#FFFFFF90") +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf_label(aes(label = label)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  scale_fill_viridis_b(name = "STR-induced rent increase as % of expected 2023 rent",
+                       limits = c(0.02, 0.06), n.breaks = 5, 
+                       labels = scales::percent) +
+  ggtitle("Projected 2023 STR-induced rent increases in Richmond") +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+```
+
+## Nanaimo
+
+The city of Nanaimo, on the eastern coast of Vancouver Island, has a population of just under 100,000. In 2021, there was an average of `r active_avg_2021_N` STR listings active each day in Nanaimo, compared to `r active_avg_2019_N` in 2019. These listings were operated by `r hosts_avg_2021_N` hosts (compared to `r hosts_avg_2019_N` in 2019), who collectively earned `r rev_total_2021_N` in revenue (compared to `r rev_total_2019_N` in 2019), with an average of `r rev_avg_2021_N` per listing (compared to `r rev_avg_2019_N` in 2019) and a median of `r rev_med_2021_N` (compared to `r rev_med_2019_N` in 2019).
+
+Figure X displays the number of active listings per day in Nanaimo, expressed as a percentage of all dwelling units. Compared to other mid-sized cities in BC, Nanaimo has a lower-than-average number of active STRs, and this gap has widened slightly during 2021, as other mid-sized cities have seen their STR markets recover faster than Nanaimo. Figure X shows the distribution of these STRs in 2021, in the left panel as actual listing locations and in the right panel as a proportion of all dwelling units.
+
+```{r fig_N_1, echo = FALSE}
+
+active_daily_N |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1.5) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = c("grey30", "red"), 
+                      na.value = "transparent") +
+  ggtitle("Figure X. Active listings as % of all dwelling units") + 
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+```{r fig_N_2, fig.width = 9}
+
+fig_N_2_left <- 
+  property_N |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_N, colour = "#FFFFFF90") +
+  geom_sf(data = streets_N_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.5) +
   coord_sf(xlim = st_bbox(filter(CSD, name == "Nanaimo"))[c(1, 3)],
            ylim = st_bbox(filter(CSD, name == "Nanaimo"))[c(2, 4)]) +
   scale_colour_discrete(name = NULL) +
   theme_void() +
   theme(legend.position = "bottom")
 
+fig_N_2_right <- 
+CT |> 
+  select(GeoUID) |> 
+  inner_join(listings_pct_N) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_N, colour = "#FFFFFF90") +
+  geom_sf(data = streets_N_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_viridis_b(name = "Active STR listings as % of dwelling units",
+                       labels = scales::percent, n.breaks = 8) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Nanaimo"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Nanaimo"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+fig_N_2_left + fig_N_2_right + ggtitle("Figure X. Active STR listings in Nanaimo")
+
 ```
 
-Since the pandemic, Nanaimo's STR market has followed a similar trajectory to other communities which receive significant tourism flows from within BC. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_N` of what would have been expected for this time period. But, at the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been elevated `r covid_price_pct_N` over their in Nanaimo. This combination of fewer reservations at higher prices is consistent with the TKTK.
+Since the pandemic, Nanaimo's STR market has followed a similar trajectory to other communities which receive significant tourism flows from within BC. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_N` of what would have been expected for this time period. But, at the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been elevated `r covid_price_pct_N` over their pre-pandemic trend in Nanaimo. This combination of fewer reservations at higher prices is consistent with the pattern we have observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand outside the major cities to remain reasonable strong, while supply constraints led that demand to manifest as higher prices rather than more listings.
 
 ```{r fig_N_3, fig.width = 9}
 
@@ -141,12 +354,17 @@ p1 + p2
 
 ```
 
+Both before and during the pandemic, Nanaimo's STR market has been dominated by commercial operators. On average from 2018-2021, `r commercial_pct_N` of listings active each day in Nanaimo have been frequently rented entire-home listings or ghost hostels, which means they are highly unlikely to be the host's principal residence. Figure X shows the total amount of STR-induced housing loss in Nanaimo, and demonstrates that, in the absence of the pandemic, there would likely be more than 200 housing units converted to full-time STRs in the city.
 
-``` {r fig_N_4, fig.width = 9}
+```{r fig_N_4, fig.width = 9}
 
-housing_loss_daily_model_N |> 
+dat <- 
+  housing_loss_daily_model_N |> 
   mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
   select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31")
+
+dat |> 
   pivot_longer(-c(date)) |> 
   filter(!is.na(value)) |> 
   mutate(label = case_when(
@@ -155,9 +373,7 @@ housing_loss_daily_model_N |>
     TRUE ~ NA_character_)) |> 
   ggplot() +
   geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
-              data = {
-                housing_loss_daily_model_N |> 
-                  mutate(units_trend = slider::slide_dbl(units_trend, mean, .before = 6, .complete = TRUE))}, fill = col_palette[3], alpha = 0.3) +
+              data = dat, fill = col_palette[3], alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1) +
   geom_label(aes(date, value, label = label, color = name), size = 3) +
   scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
@@ -174,7 +390,202 @@ housing_loss_daily_model_N |>
 
 ```
 
+From 2016-2021, our province-wide model suggests that renters in Nanaimo paid `r overpaid_2016_2021_N` more in rent because of the presence of commercial STRs driving up rents. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019_N` of the total rents paid by Nanaimo tenants. Put differently, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs in Nanaimo accounts for `r str_incr_2017_2019_N` of the increases in rents which Nanaimo households were subjected to. The average Nanaimo neighbourhood saw a `r rent_month_2017_2019_N` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019_N` can be attributed to the growth of dedicated STRs.
 
+In 2020, when the number of commercial STRs plummeted because of the pandemic, we estimate that rents increased `r str_incr_2020_N` less than they otherwise would have, because of the decrease in commercial STRs that year. But if the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023_N` housing units operating as dedicated STRs in Nanaimo---a `r housing_loss_change_2021_2023_N` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents by `r rent_inc_monthly_2021_2023_N` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023_N` the average Nanaimo renter household will be paying per year because of the growth of commercial STRs.
 
+## Kelowna
 
+The city of Kelowna, which has a population of 145,000, lies at the heart of the tourist economy of the Okanagan Valley. In 2021, there was an average of `r active_avg_2021_K` STR listings active each day in Kelowna---significantly lower than the `r active_avg_2019_K` active in 2019. These listings were operated by `r hosts_avg_2021_K` hosts (compared to `r hosts_avg_2019_K` in 2019), who collectively earned `r rev_total_2021_K` in revenue (almost exactly equal to the `r rev_total_2019_K` in 2019, despite the much smaller number of active listings), with an average of `r rev_avg_2021_K` per listing (compared to `r rev_avg_2019_K` in 2019) and a median of `r rev_med_2021_K` (compared to `r rev_med_2019_K` in 2019).
 
+Figure X displays the number of active listings per day in Kelowna, expressed as a percentage of all dwelling units. Compared to other resort municipalities, Kelowna has persistently had a lower prevalence of STRs, and this pattern has continued since the pandemic. (At the same time, Kelowna has a far higher prevalence of STRs than nearly any non-resort municipality in the province; it is only in relation to other resort towns that it is below average.) Figure X shows the distribution of these STRs in 2021, as actual locations in the left panel and as a share of dwelling units in the right panel.
+
+```{r fig_K_1, echo = FALSE}
+
+active_daily_K |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1.5) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = c("red", "grey30"), 
+                      na.value = "transparent") +
+  ggtitle("Figure X. Active listings as % of all dwelling units") + 
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+```{r fig_K_2, fig.width = 9}
+
+fig_K_2_left <- 
+  property_K |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Kelowna"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_K, colour = "#FFFFFF90") +
+  geom_sf(data = streets_K_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Kelowna"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Kelowna"))[c(2, 4)]) +
+  scale_colour_discrete(name = NULL) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+fig_K_2_right <- 
+  CT |> 
+  inner_join(listings_pct_K) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Kelowna"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_K, colour = "#FFFFFF90") +
+  geom_sf(data = streets_K_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_viridis_b(name = "Active STR listings as % of dwelling units",
+                       labels = scales::percent, n.breaks = 8) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Kelowna"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Kelowna"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+fig_K_2_left + fig_K_2_right + ggtitle("Figure X. Active STR listings in Kelowna")
+
+```
+
+Since the pandemic, Kelowna's STR market has seen low reservation counts but high prices, which is a pattern it shares with other tourist communities in the province. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_K` of what would have been expected for this time period. At the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been `r covid_price_pct_K` higher than the pre-pandemic trend, with a particularly noteworthy spike during the summer high season in 2021, when prices were `r covid_price_pct_2021_K` higher than the pre-pandemic trend. This combination of fewer reservations at higher prices is consistent with the pattern we have observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand outside the major cities to remain reasonable strong, while supply constraints led that demand to manifest as higher prices rather than more listings.
+
+```{r fig_K_3, fig.width = 9}
+
+p1 <- reservations_and_prices_K |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_K |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend))
+                }, fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p2 <- reservations_and_prices_K |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-02-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_K |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[3],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p1 + p2
+
+```
+
+Both before and during the pandemic, Kelowna's STR market has been dominated by commercial operators. On average from 2018-2021, `r commercial_pct_K` of listings active each day in Kelowna have been frequently rented entire-home listings or ghost hostels, which means they are highly unlikely to be the host's principal residence. Figure X shows the total amount of STR-induced housing loss in Kelowna, and demonstrates that, in the absence of the pandemic, there would likely be nearly 800 housing units converted to full-time STRs in the city.
+
+```{r fig_K_4, fig.width = 9}
+
+dat <- 
+  housing_loss_daily_model_K |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31")
+
+dat |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-07" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = dat, fill = col_palette[3], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+```
+
+From 2016-2021, our province-wide model suggests that renters in Kelowna and its surroundings (specifically, the CMHC-defined "Core Area" zone of the Regional District of Central Okanagan) paid `r overpaid_2016_2021_K` more in rent because of the presence of commercial STRs driving up rents. This is the second highest of any municipality in the province (behind Vancouver), despite Kelowna's relatively modest population. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019_K` of the total rents paid by Kelowna tenants. Put differently, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs in Kelowna accounts for a shocking `r str_incr_2017_2019_K` of the increases in rents which Kelowna households were subjected to. The average Kelowna neighbourhood saw a `r rent_month_2017_2019_K` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019_K` can be attributed to the growth of dedicated STRs.
+
+In 2020, when the number of commercial STRs declined because of the pandemic, we estimate that rents increased `r str_incr_2020_K` less than they otherwise would have, because of the decrease in commercial STRs that year. But if the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023_K` housing units operating as dedicated STRs in Kelowna---a `r housing_loss_change_2021_2023_K` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents by `r rent_inc_monthly_2021_2023_K` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023_K` the average Kelowna renter household will be paying per year because of the growth of commercial STRs. Figure X shows the forecasted percentage and absolute rent increases which Kelowna renters will experience in 2023 if the quantity of commercial STRs returns to its pre-pandemic trend.
+
+```{r fig_K_5, fig.width = 9}
+
+rent_change_2023_table_K |> 
+  left_join(filter(cmhc_str, year == 5)) |> 
+  mutate(label = scales::dollar(str_2023, 1, prefix = "+$")) |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Kelowna"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(aes(fill = rent_2023_pct), colour = "white") +
+  geom_sf(data = streets_K, colour = "#FFFFFF90") +
+  geom_sf(data = streets_K_2, colour = "#FFFFFF80", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf_label(aes(label = label)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Kelowna"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Kelowna"))[c(2, 4)]) +
+  scale_fill_viridis_b(name = "STR-induced rent increase as % of expected 2023 rent",
+                       limits = c(0.02, 0.06), n.breaks = 5, 
+                       labels = scales::percent) +
+  ggtitle("Projected 2023 STR-induced rent increases in Kelowna") +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+```
