@@ -173,7 +173,7 @@ monthly_series_V <-
   tsibble::as_tsibble(index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   summarize(price = sum(res * price) / sum(res),
-            res = sum(res)) %>% 
+            res = sum(res)) |> 
   relocate(price, .after = res)
 
 # Create reservations model
@@ -512,6 +512,50 @@ rent_change_2023_table_V <-
   mutate(rent_2023_pct = str_2023 / (total_rent + year_2023 * 2),
          rent_inc_pct = str_2023 / (str_2023 + year_2023 * 2))
 
+# Photo prep
+library(matchr)
+qs::qload("data/matches_raw.qsm")
+ltr <- qs::qread("data/ltr_processed.qs", nthreads = future::availableCores())
+
+first_photo_pair <- 
+  cl_matches |> 
+  filter(confirmation == "match") |> 
+  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-18753643.jpg")
+
+second_photo_pair <- 
+  cl_matches |> 
+  filter(confirmation == "match") |> 
+  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-10972081.jpg")
+
+titles <- list(
+  
+  first_photo_pair$x_name |> 
+    str_extract('ab-.*(?=\\.jpg)') |> 
+    (\(x) filter(property, property_ID == x))() |> 
+    pull(listing_title),
+  
+  first_photo_pair$y_name |> 
+    str_extract('cl-.*(?=-[:digit:]\\.jpg)') |> 
+    (\(x) filter(ltr, id == x))() |> 
+    slice(1) |> 
+    pull(title) |> 
+    str_remove(' \\|.*'),
+  
+  second_photo_pair$x_name |> 
+    str_extract('ab-.*(?=\\.jpg)') |> 
+    (\(x) filter(property, property_ID == x))() |> 
+    pull(listing_title),
+  
+  second_photo_pair$y_name |> 
+    str_extract('cl-.*(?=-[:digit:]\\.jpg)') |> 
+    (\(x) filter(ltr, id == x))() |> 
+    slice(1) |> 
+    pull(title) |> 
+    str_remove(' - apts.*')
+)
+
+
+
 
 # Richmond ----------------------------------------------------------------
 
@@ -665,7 +709,7 @@ monthly_series_R <-
   tsibble::as_tsibble(index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   summarize(price = sum(res * price) / sum(res),
-            res = sum(res)) %>% 
+            res = sum(res)) |> 
   relocate(price, .after = res)
 
 # Create reservations model
@@ -1157,7 +1201,7 @@ monthly_series_N <-
   tsibble::as_tsibble(index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   summarize(price = sum(res * price) / sum(res),
-            res = sum(res)) %>% 
+            res = sum(res)) |> 
   relocate(price, .after = res)
 
 # Create reservations model
@@ -1630,7 +1674,7 @@ monthly_series_K <-
   tsibble::as_tsibble(index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   summarize(price = sum(res * price) / sum(res),
-            res = sum(res)) %>% 
+            res = sum(res)) |> 
   relocate(price, .after = res)
 
 # Create reservations model
@@ -2113,7 +2157,7 @@ monthly_series_S <-
   tsibble::as_tsibble(index = date) |> 
   tsibble::index_by(yearmon = yearmonth(date)) |> 
   summarize(price = sum(res * price) / sum(res),
-            res = sum(res)) %>% 
+            res = sum(res)) |> 
   relocate(price, .after = res)
 
 # Create reservations model
@@ -2456,6 +2500,7 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            str_incr_month_2017_2019_V, str_incr_2020_V, housing_loss_2023_V, 
            housing_loss_change_2021_2023_V, rent_inc_monthly_2021_2023_V, 
            rent_inc_annual_2021_2023_V, rent_change_2023_table_V,
+           first_photo_pair, second_photo_pair, titles,
            
            property_R, active_avg_2021_R, active_avg_2019_R, hosts_avg_2021_R,
            hosts_avg_2019_R, rev_total_2021_R, rev_total_2019_R, rev_avg_2021_R,

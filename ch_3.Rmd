@@ -113,9 +113,9 @@ fig_15_left + fig_15_right + ggtitle("Figure 15. Active STR listings in Vancouve
 
 ```
 
-Since the pandemic, Vancouver's STR market has collapsed---similarly to other municipalities in large urban regions in BC. As the left panel of Figure X demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_V` of what would have been expected for this time period. At the same time, the right panel of Figure X shows that, after a brief dip at the beginning of the pandemic, average nightly prices have been `r covid_price_pct_V` lower than the pre-pandemic trend. This combination of fewer reservations at lower prices demonstrates a collapse in STR demand in Richmond, and is consistent with the pattern we have observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand in the major cities to fall dramatically.
+Since the pandemic, Vancouver's STR market has collapsed---along with neighbouring West Vancouver, Vancouver registered the largest proportionate decline in STR reservations between 2019 and 2021 of any mid-sized or large municipality in the province. As the left panel of Figure 16 demonstrates, STR reservations from March 2020 through March 2022 have been only `r covid_res_pct_V` of what would have been expected for this time period. At the same time, the right panel of Figure 16 shows that average nightly prices have been `r covid_price_pct_V` lower than the pre-pandemic trend. This combination of fewer reservations at lower prices demonstrates a collapse in STR demand in Vancouver, and is consistent with the pattern we have observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand in the major cities to fall dramatically.
 
-```{r fig_V_3, fig.width = 9}
+```{r fig_16, fig.width = 9}
 
 p1 <- reservations_and_prices_V |> 
   mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
@@ -179,9 +179,9 @@ p1 + p2
 
 ```
 
-Both before and during the pandemic, Richmond's STR market has been dominated by commercial operators. On average from 2018-2021, `r commercial_pct_V` of listings active each day in Richmond have been frequently rented entire-home listings or ghost hostels, which means they are highly unlikely to be the host's principal residence. Figure X shows the total amount of STR-induced housing loss in Richmond, and demonstrates that, in the absence of the pandemic, there would likely be nearly 600 housing units converted to full-time STRs in the city.
+Despite Vancouver's STR regulations having somewhat reduced the dominance of commercial operators, the city's STR market remains mostly dedicated STRs. On average from 2018-2021, `r commercial_pct_V` of listings active each day in Vancouver have been frequently rented entire-home listings or ghost hostels, which means they are highly unlikely to be the host's principal residence. Figure 17 shows the total amount of STR-induced housing loss in Vancouver, and demonstrates that, in the absence of the pandemic, there could be 2500 or more housing units operating as full-time STRs in the city.
 
-```{r fig_V_4, fig.width = 9}
+```{r fig_17, fig.width = 9}
 
 dat <- 
   housing_loss_daily_model_V |> 
@@ -215,11 +215,40 @@ dat |>
 
 ```
 
-From 2016-2021, our province-wide model suggests that renters in Richmond paid `r overpaid_2016_2021_V` more in rent because of the presence of commercial STRs driving up rents. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019_V` of the total rents paid by Richmond tenants. Put differently, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs in Richmond accounts for `r str_incr_2017_2019_V` of the increases in rents which Richmond households were subjected to. The average Richmond neighbourhood saw a `r rent_month_2017_2019_V` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019_V` can be attributed to the growth of dedicated STRs.
+From 2016-2021, our province-wide model suggests that renters in Vancouver paid `r overpaid_2016_2021_V` more in rent because of the presence of commercial STRs driving up rents. In 2019, when the STR market was at its pre-pandemic peak, we estimate dedicated STRs were responsible for `r rent_str_pct_2019_V` of the total rents paid by Vacouver tenants. Put differently, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs in Vancouver accounts for `r str_incr_2017_2019_V` of the increases in rents which Richmond households were subjected to. The average Vancouver neighbourhood saw a `r rent_month_2017_2019_V` increase in monthly rent each of these years, of which `r str_incr_month_2017_2019_V` can be attributed to the growth of dedicated STRs. This number is much lower than most other communities in British Columbia, and reflects the effectiveness of the City of Vancouver's restrictions on commercial STRs. By limiting (with partial success from an enforcement perspective) STRs to a host's principal residence, the City of Vancouver has kept the number of commercial STRs much lower than it otherwise would have been, and kept rents from rising even higher than they otherwise would have.
 
-In 2020, when the number of commercial STRs plummeted because of the pandemic, we estimate that rents increased `r str_incr_2020_V` less than they otherwise would have, because of the decrease in commercial STRs that year. But if the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there will be `r housing_loss_2023_V` housing units operating as dedicated STRs in Richmond---a `r housing_loss_change_2021_2023_V` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents by `r rent_inc_monthly_2021_2023_V` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023_V` the average Richmond renter household will be paying per year because of the growth of commercial STRs. Figure X shows the forecasted percentage and absolute rent increases which Richmond renters will experience in 2023 if the quantity of commercial STRs returns to its pre-pandemic trend.
+In a more dramatic example of the impact of declining STR activity on housing affordability, in 2020, when the number of commercial STRs plummeted because of the pandemic, we estimate that rents in Vancouver increased `r str_incr_2020_V` less than they otherwise would have, because of the decrease in commercial STRs that year. In our previous work, we in fact identified 1,148 Airbnb and Vrbo listings which were relisted on the long-term market via Craigslist or Kijiji between March and September of 2020 (Wachsmuth et al. 2021). We identified these listings through custom image matching software which we developed; a pair of examples are shown in Figure 18. These listings were disproportionately commercial STRs in downtown Vancouver whose hosts had been earning more than twice the city-wide average in STR revenue prior to the pandemic.
 
-```{r fig_V_5, fig.width = 9}
+```{r fig_18}
+
+library(imager)
+
+pmap(list(list(first_photo_pair$x_name, first_photo_pair$y_name, 
+               second_photo_pair$x_name, second_photo_pair$y_name), 
+          titles, c("A", "B", "C", "D")), 
+     ~{.x |>  
+         load.image() |> 
+         as.data.frame(wide = "c") |> 
+         mutate(rgb = rgb(c.1, c.2, c.3)) |> 
+         ggplot(aes(x, y)) +
+         geom_raster(aes(fill = rgb)) + 
+         scale_fill_identity() +
+         scale_y_continuous(trans = scales::reverse_trans()) +
+         ggtitle(paste0(..3, ". ", case_when(
+           str_detect(..1, "ab-") ~ "Airbnb",
+           str_detect(..1, "cl-") ~ "Craigslist",
+           str_detect(..1, "kj-") ~ "Kijiji")),
+           subtitle = paste0('"', ..2, '"')) +
+         theme_void() +
+         theme(plot.title = element_text(face = "bold", size = 9),
+               plot.subtitle = element_text(face = "plain", size = 9))}) |>  
+  patchwork::wrap_plots()
+
+```
+
+As of the end of 2021 there have started to be signs that Vancouver's commercial STR operators are retuning to the market. If the province's STR market returns to its pre-pandemic trajectory by the end of 2023, this would imply that there could be `r housing_loss_2023_V` housing units operating as dedicated STRs in Vancouver---a `r housing_loss_change_2021_2023_V` increase over the actual number as of the end of 2021. This implies that STR activity will drive up average monthly rents by `r rent_inc_monthly_2021_2023_V` above their levels at the end of 2021. This is an extra `r rent_inc_annual_2021_2023_V` the average Vancouver renter household will be paying per year because of the growth of commercial STRs. Figure 19 shows the forecasted percentage and absolute rent increases which Vancouver renters will experience in 2023 if the quantity of commercial STRs returns to its pre-pandemic trend.
+
+```{r fig_19, fig.width = 9}
 
 rent_change_2023_table_V |> 
   left_join(filter(cmhc_str, year == 5)) |> 
@@ -236,16 +265,14 @@ rent_change_2023_table_V |>
   geom_sf_label(aes(label = label)) +
   coord_sf(xlim = st_bbox(filter(CSD, name == "Vancouver"))[c(1, 3)],
            ylim = st_bbox(filter(CSD, name == "Vancouver"))[c(2, 4)]) +
-  scale_fill_viridis_b(name = "STR-induced rent increase as % of expected 2023 rent",
+  scale_fill_viridis_b(name = "STR-induced monthly rent increase as % of expected 2023 rent",
                        limits = c(0.02, 0.06), n.breaks = 5, 
                        labels = scales::percent) +
-  ggtitle("Projected 2023 STR-induced rent increases in Vancouver") +
+  ggtitle("Projected 2023 STR-induced monthly rent increases in Vancouver") +
   theme_void() +
   theme(legend.position = "bottom")
 
 ```
-
-## 
 
 ## Richmond
 
