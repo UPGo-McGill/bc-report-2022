@@ -1,24 +1,12 @@
----
-title: "Introduction"
-author: "David Wachsmuth"
-date: '2022-05-28'
-output: pdf_document
----
+# Introduction {-}
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+In May 2022, the Urban Politics and Governance research group (UPGo) at McGill University was commissioned British Columbia Hotel Association (BCHA) to conduct market research and analysis on short-term rentals (STRs) in the province of British Columbia (BC), the impact of STRs on the province's average rents and the policy best practices available for regulating STRs. To do so, this report will shed light on the following topics: 
 
-## R Markdown
+- A general market overview of short-term rentals in the province, including the volume, revenue, type, size and distribution of units, the presence of dedicated commercial operations, and the impact of Covid-19 on the STR market.
+- An analysis of the impact of dedicated STRs on the province's rental housing stock, namely on the levels of rent increases from 2016-2021 by geographic region.
+- A presentation of community case studies, using five different regions representative of the different STR markets in the province.
+- A chapter on the regulatory environment of STRs, including an analysis of various novel STR regulation systems and overall best practices between governmental entities.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Data and methodology are discussed in the Appendix, and all the code used to generate the analysis in the report is available online at https://github.com/UPGo-McGill/bc-report-2022.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Methodology
-
-Census Metropolitan Areas (CMA), Census Agglomerations (CA), non-urban areas, and resort towns. Resort towns are municipalities that, according the census, have 12% or more of their labor employed in entertainment and recreation and accommodation and food businesses. Within the CMAs, we also differentiate between the entire CMA and the city centres, which include the cities of Vancouver, Victoria, and Abottsford. 
+\newpage
