@@ -1,11 +1,10 @@
 ---
-title: "Chapter 4. Navigating short-term rental regulations"
-author: "David Wachsmuth, Maxime Belanger de Blois and Cloe St-Hilaire"
+title: "Chapter 4. STR regulatory pathways"
 date: "31/05/2022"
-output: html_document
+output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(message = FALSE)
@@ -13,28 +12,83 @@ knitr::opts_chunk$set(warning = FALSE)
 
 library(tidyverse)
 library(slider)
-qs::qload("output/data/ch_2.qsm")
+
+qs::qload("output/data/ch_4.qsm")
+
 col_palette <-
   c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ```
 
-The sentiments around short-term rentals are diverse. A study by Bolt and Wachsmuth (TKTK) has shown that the neighbourhoods who tended to have negative sentiments toward STRs are not necessarily the ones with high numbers of these operations, but rather the extent of the presence of housing vulnerability in the neighbourhoods. A neighbourhood with a large number of commercial STRs and high percentages of unaffordable housing, renter households and newcomers tend to be negatively disposed toward short-term rentals. In other words, when STRs make housing matters worse, communities will oppose them. In line with these findings, a growing number of municipalities and provinces both in Canada and globally have started enacting regulations around the operation of short-term rentals.
+TKTK The sentiments around short-term rentals are diverse. A study by Bolt and Wachsmuth (TKTK) has shown that the neighbourhoods who tended to have negative sentiments toward STRs are not necessarily the ones with high numbers of these operations, but rather the extent of the presence of housing vulnerability in the neighbourhoods. A neighbourhood with a large number of commercial STRs and high percentages of unaffordable housing, renter households and newcomers tend to be negatively disposed toward short-term rentals. In other words, when STRs make housing matters worse, communities will oppose them. In line with these findings, a growing number of municipalities and provinces both in Canada and globally have started enacting regulations around the operation of short-term rentals.
 
-The governments can use multiple methods for going about regulating STRs. One of the most crucial elements for a successful regulation of STRs is for governments to make a distinction between home sharing and commercially-operated STRs. Home sharing should be encouraged while commercial STRs should be made illegal. The evidence suggests that the most effective way to regulate STRs is through principal-residence requirements with mandatory registration. All households wishful to operate a short-term rental could do so in their residence with a valid and unique registration number. We present two stories of municipalities having regulated STRs -- Vancouver and Toronto -- and also present the Province of Quebec's law project that aims to regulate STRs at the provincial level.
+TKTK The governments can use multiple methods for going about regulating STRs. One of the most crucial elements for a successful regulation of STRs is for governments to make a distinction between home sharing and commercially-operated STRs. Home sharing should be encouraged while commercial STRs should be made illegal. The evidence suggests that the most effective way to regulate STRs is through principal-residence requirements with mandatory registration. All households wishful to operate a short-term rental could do so in their residence with a valid and unique registration number. We present two stories of municipalities having regulated STRs -- Vancouver and Toronto -- and also present the Province of Quebec's law project that aims to regulate STRs at the provincial level.
 
 # Vancouver, the early success story
 
-In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, defined as rentals offered for thirty or fewer consecutive days (City of
-Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit, the license being valid for one year. The listing can only be operated out of the host's principal residence, either for the entire dwelling or for individual rooms. The registration is mandatory on any rental platform, although Airbnb is the only one that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). In August 2018, shortly before the City’s announced start date for enforcement of the registration system, Airbnb removed approximately 2,400 listings which had not received licenses, which amounted to 30.8% of all displayed listings. Using trend analysis, we estimated that, by mid-2019, the Vancouver STR regulation reduced active STR listings by 1,510, or 35.8%. We also estimated that the City's regulations have returned 810 housing units to the long-term market, compared to counter-factual scenarios where no regulations were put in place. This represents 38.9% of the average number of commercial STRs taking housing off the Vancouver market in the second half of 2019.
+In April 2018, the City of Vancouver enacted regulations on the operations of short-term rentals in the City, defined as rentals offered for thirty or fewer consecutive days (City of Vancouver, 2020a). Under these regulations, each STR operator is required to obtain a license for their rental unit, the license being valid for one year. The listing can only be operated out of the host's principal residence, either for the entire dwelling or for individual rooms. The registration is mandatory on any rental platform, although Airbnb is the only platform that agreed to require hosts in Vancouver to fill out a license field in their online listing, to engage in data sharing, and to undertake operator education (City of Vancouver, 2020b). In August 2018, shortly before the City's announced start date for enforcement of the registration system, Airbnb removed approximately 2,400 listings which had not received licenses, which amounted to 30.8% of all displayed listings. Using trend analysis, we estimated that, by mid-2019, the Vancouver STR regulation reduced active STR listings by more than one third, compared to the counter-factual scenario where the regulations had not been introduced. We also estimated that the City's regulations reduced commercial STRs by a similar proportion, thus returning more than 800 housing units to the long-term market. The analysis in chapter 3 of this report demonstrates that these regulatory actions have exerted significant downward pressure on the growth of residential rents in Vancouver.
 
-While there is no way to confirm which scenario would have happened in Vancouver if it were not for the regulations, we compared Vancouver's trajectory with that of Toronto and Montreal for all active listings and also commercial listings (which we identify as either FREH listings or multilistings). Toronto implemented STR regulations in early 2021: two years and a half after Vancouver. Montreal has varying borough-level STR regulations, but commercial operations are largely forbidden in central boroughs. However, with no registration system in place, it has been widely understood that Montreal’s enforcement mechanisms have not been sufficiently strong to significantly affect the operation of commercial STRs. Toronto and Montreal thus represent zero- or low-regulation cases with which to compare Vancouver (Figure TKTK).
+Further evidence supporting the notion that Vancouver's STR regulations have been effective at reducing the dedicated STRs which drive up housing costs comes from comparing Vancouver with peer cities nationally and with the rest of the Metro Vancouver region. As Figure X demonstrates, Vancouver's STR growth trajectory lagged significantly behind Montreal and Toronto (which did not have comparable STR restrictions at the time, and thus serve as useful contrasting cases) from 2018 through the end of 2019, and the difference was particularly large with respect to frequently-rented entire home (FREH) listings. Through 2017, FREH listings were growing at nearly identical rates in Toronto and Vancouver, while by 2019 Toronto had nearly twice the total FREH growth which Vancouver had. Figure X demonstrates that the same pattern holds true comparing Vancouver to the rest of the CMA---the growth rate of FREH listings in the rest of the CMA has vastly exceeded Vancouver's since 2018.
 
-The comparison shows that the active listings in Vancouver plummeted in comparison to that of Montreal and Toronto. The comparison is starker if we look more closely to the multilistings and FREH listings. Montreal’s FREH listings were growing at a 15.2% higher rate than Vancouver, while Toronto’s FREH growth rate was identical to Vancouver’s. Through 2017, Montreal’s multilistings were growing at a 6.9% higher rate than Vancouver, while Toronto’s were growing 2.1% faster. In the second half of 2019, by which point the temporary impacts of Airbnb’s mass listing removal in Vancouver would have subsided, the commercial side of Vancouver’s market looked dramatically different from either Montreal or Toronto. These differences strongly support the conclusion that the City of Vancouver’s regulations have durably reduced the commercial part of Vancouver’s STR market. We can also see these conclusions by comparing the Vancouver trajectory to that of the rest of the CMA (Figure TKTK).
+```{r fig_4_1}
 
-# Toronto, another regulation perspective 
+canada_comparison |> 
+    filter(date >= "2016-07-01", date <= "2019-12-31") %>% 
+  group_by(city, type) %>% 
+  mutate(index = 100 * n / n[date == "2017-01-01"]) %>% 
+  ungroup() %>% 
+  mutate(type = case_when(
+    type == "active" ~ "Active listings", 
+    type == "FREH" ~ "FREH listings",
+    type == "multi" ~ "Multilistings")) %>% 
+  ggplot(aes(date, index, colour = city, size = city)) +
+  geom_line() +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-07-01"), NA)) +
+  scale_colour_manual(name = NULL, 
+                      values = col_palette[c(3, 6, 5)],
+                      guide = guide_legend(override.aes = list(
+                        size = c(0.5, 0.5, 1)))) +
+  scale_size_manual(values = c("Vancouver" = 1, "Montreal" = 0.5,
+                               "Toronto" = 0.5), guide = "none") + 
+  facet_wrap(vars(type), nrow = 1) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank())
 
-Starting in early 2021, all STRs in the City of Toronto must be registered. In early January, Airbnb removed 2,600 Toronto listings which had failed to do so. However, the overwhelming majority of Airbnb hosts have responded not by registering, but by setting a minimum rental length of 28 days, which exempts them from the registration requirement. To compare, in November of 2020, only 6.3% of Toronto listings had a minimum stay of 28 days or more, while at the beginning of February 2021 it was 72.2%. While it was too early to tell at the time of analysis the long-term impacts the regulations had on the Toronto STR market, we can see that offering an option for hosts not to register acts as a serious barrier to effective regulation. Toronto's registration system was successful at shifting market behavior, but by diverting properties out of the system, instead of capturing them within the system. 
+```
+
+```{r fig_4_2}
+
+cma_comparison |> 
+    filter(date >= "2016-07-01", date <= "2019-12-31") |> 
+  group_by(city, type) |> 
+  mutate(index = 100 * n / n[date == "2017-01-01"]) |> 
+  ungroup() |> 
+  mutate(type = case_when(
+    type == "active" ~ "Active listings", 
+    type == "FREH" ~ "FREH listings",
+    type == "multi" ~ "Multilistings")) |> 
+  ggplot(aes(date, index, colour = city, size = city)) +
+  geom_line() +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-07-01"), NA)) +
+  scale_colour_manual(name = NULL, 
+                      values = col_palette[c(3, 5)],
+                      guide = guide_legend(override.aes = list(
+                        size = c(0.5, 1)))) +
+  scale_size_manual(values = c("Vancouver" = 1, "Rest of CMA" = 0.5), 
+                    guide = "none") + 
+  facet_wrap(vars(type), nrow = 1) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank())
+
+```
+
+# Toronto, another regulation perspective
+
+Starting in early 2021, all STRs in the City of Toronto must be registered. In early January, Airbnb removed 2,600 Toronto listings which had failed to do so. However, the overwhelming majority of Airbnb hosts have responded not by registering, but by setting a minimum rental length of 28 days, which exempts them from the registration requirement. To compare, in November of 2020, only 6.3% of Toronto listings had a minimum stay of 28 days or more, while at the beginning of February 2021 it was 72.2%. While it was too early to tell at the time of analysis the long-term impacts the regulations had on the Toronto STR market, we can see that offering an option for hosts not to register acts as a serious barrier to effective regulation. Toronto's registration system was successful at shifting market behavior, but by diverting properties out of the system, instead of capturing them within the system.
 
 # Provincial efforts at regulating STRs
 
@@ -49,6 +103,3 @@ Another crucial element of every STR regulation is the regulation's capacity to 
 The STR market is still recovering from the Covid-19 pandemic. The size of the disparities between short-term rental revenues and long-term rents is at an all-time low in cities. In rural tourist destinations, it is the opposite situation. Nevertheless, now is an excellent time for the province to introduce new regulations. Regulating STRs through a mandatory registration and a principal residence requirement is the fast, simplest way to regulate the market. Moving forward, the province and municipalities should divide the work. We separate the tasks that regulators need to accomplish in three categories: 1. They must decide on the appropriate regulations for the jurisdiction. 2. they must gather the information necessary to enforce the rules 3. they must enforce the rules.
 
 Municipalities are the best positioned to tackle task 1: decide on the most appropriate rules. Each municipality has different priorities as it relates to tourism and housing, making them the best suited to establish the regulation specifications. Regarding task #2, information gathering, the province is in a strategically stronger position to do so. While regulation specifications can very between municipalities, the registration system will not. Additionally, municipalities would be in a bad position to solve the issues related to geographic boundaries and registration consistency. It is therefore the province who should lead the information gathering regarding short-term rentals. Lastly, regulation enforcement should be a concerted action between both the province and municipalities. The province can maintain the validity of the registration system, while municipalities can use the information in the registration system to enforce local bylaws. They can use their local knowledge, inspections and complaints to report registration problems to the province.
-
-
-
