@@ -6,43 +6,33 @@
 
 <!-- **SHORT-TERM RENTALS IN BRITISH COLUMBIA: MARKET OVERVIEW** -->
 
-<!-- - There are on a daily average 490 active STA listings in Prince Edward County housing units in 2021, which collectively earned $138,000 per day. -->
-<!-- - The average number of active listings declined by 37.2% compared to 2019, while revenue increased by 52.7%. -->
-<!-- - The ward with the most active listings is Picton, with 19.5%, followed by Hallowell (13.4%) and Wellington (11.5%). -->
-<!-- - Most (92.9%) STA listings were entire homes, responsible for 98.0% of total revenues. -->
-<!-- - Revenue is distributed unevenly among hosts, with the top 10% of hosts earning 49.2% of revenues and the top 1% earning 20.8% of all revenues. -->
-<!-- - Multilistings account for almost half (49.6%) of STA listings in the county, earning 50.6% of total host revenue. -->
-<!-- - The Covid-19 pandemic has caused reservations to drop by 20%, while nightly prices were almost twice (48.4%) as high in 2021 compared to 2019. -->
-<!-- - The pandemic has also flattened the seasonality pattern in the county, with non-summer months receiving more reservations on average than the years before. -->
+<!-- - There are on a daily average 16,080 active STR listings in British Columbia housing units in 2021, which collectively earned $663.2 million in revenue. -->
+<!-- - The average number of active listings declined by 32.2% compared to 2019, while revenue decreased by 19.9%. -->
+<!-- - The percentage of STR listings operated as entire-home listings was 86.2% in 2021, noticeably more than 2019's 79.0% -->
+<!-- - Revenue is distributed unevenly among hosts, with the top 10% of hosts earning 55.4% of revenues and the top 1% earning 25.2% of all revenues. -->
+<!-- - Multilistings account for almost half (47.5%) of STR listings in the province, earning 52.7% of total host revenue. -->
+<!-- - The Covid-19 pandemic has caused reservations to drop by 22.8% in 2020 compared to 2019, and continued decreasing by 12.1% in 2021 compared to 2020. Nightly prices on the other hand witnessed different trends depending on market type. In central cities and the rest of the large urban regions, prices fell precipitously
+in 2020, while prices increased substantially in smaller communities and resort towns. -->
 
 <!-- **THE IMPACT OF SHORT-TERM RENTALSS ON HOUSING AVAILABILITY AND AFFORDABILITY IN BRITISH COLUMBIA** -->
 
-<!-- - Housing prices and sales volumes have accelerated significantly since the start of the pandemic, from 460 properties sold in 2019 to an expected 1,110 by the end of 2021. -->
-<!-- - While prices were rising prior to 2020, the data suggest that price growth was beginning to level off until the pandemic introduced a massive demand shock to the housing market (average prices in December 2020 were 87.1% higher than in December 2019). -->
-<!-- - In 2020, the average sale price in Prince Edward County was $625,080, only to rise to $754,930 in 2021. -->
-<!-- - In five wards, households would require an additional $50,000 or more in annual income to be able to afford being a homeowner in the County. -->
-<!-- - In 2021, 7.5% of property sales were for houses that were sold two years before or less. -->
-<!-- - Rents rose 52% between June 2020 and June 2021, rises due to an increase in demand without a corresponding increase in supply. -->
-<!-- - Prior to the pandemic, 5.8% of Prince Edward County housing units operated as dedicated STA in the summer. -->
-<!-- - The number of dedicated STAs declined during the pandemic, but the supply seems to have returned to pre-pandemic levels during the summer of 2021.  -->
-<!-- - About half of all housing sales in 2016 and 2017 can be attributed to new STAs, but that share has halved in recent years. -->
+<!-- - TKTK -->
+<!-- - TKTK -->
+<!-- - TKTK -->
+<!-- - TKTK -->
+<!-- - TKTK -->
+<!-- - TKTK -->
+<!-- - TKTK -->
 
 <!-- **COMMUNITY CASE STUDIES** -->
 
-<!-- - On average each day in 2020 and 2021, 67.5% of active STAs in the county were operating with a license.  -->
-<!-- - During the moratorium, STA listings that were created on platforms have been reserved on average 50.7% of the time, showing that STA operators did not respect the operation hiatus. -->
-<!-- - Picton is the ward that received the most license applications prior to the moratorium, with 71, followed by Hallowell (60) and Wellington (54). -->
-<!-- - Prior to the pandemic, an average of 1.28 STA listings were created daily on rental platforms. This number dropped to 0.58 during the registration period, but remained at 0.57 during the moratorium, suggesting that external platforms caused a decline in new STA creation. -->
-<!-- - Second-home sales acted as a competing factor to new STA creation: the extraordinary rise in home sale volume and price made it more difficult for STA operators to financially compete. -->
-<!-- - While it took 6.96 booked night per night to cover carrying costs of a housing units in 2018, this number increase by a third to reach 9.26 nights in 2021. -->
-<!-- - The rapid comeback of STA listings and high STA prices in the summer 2021 indicate, however, that the STA market is expected to grow rapidly in the year to come. -->
+<!-- - TKTK  -->
+<!-- - TKTK -->
 
 
 <!-- **NAVIGATING SHORT-TERM RENTAL REGULATIONS** -->
 
-<!-- - Based on the registration analysis, there are two policy pathways that the county could take to reinstate the STA registration system: Redistribute or Restrict; which could be done for towns and village only or for the entire county. -->
-<!-- - By redistributing, the county would emit licenses to primary residence operators only, having the potential to redistribute $6.2 million in STA revenue to 1,000 part-time home sharers, which would earn around $6,200 each, yearly. -->
-<!-- - By restricting the number of STAs in the County, 300 licenses would need to be allocated to maintain 2019 STA activity levels, with revenues being shared by a small amount of commercial operators. -->
-<!-- - Rent subsidies to encourage owners to keep their unit on the long-term rental market in Prince Edward County would likely not be a potential solutions, since rent supplements would need to be as high as $2,520 in Wellington and $2,360 in the townships. -->
+<!-- - TKTK. -->
+<!-- - TKTK -->
 
 \newpage
