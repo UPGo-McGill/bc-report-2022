@@ -14,15 +14,15 @@
 <!-- - The Covid-19 pandemic has caused reservations to drop by 22.8% in 2020 compared to 2019, and continued decreasing by 12.1% in 2021 compared to 2020. Nightly prices on the other hand witnessed different trends depending on market type. In central cities and the rest of the large urban regions, prices fell precipitously
 in 2020, while prices increased substantially in smaller communities and resort towns. -->
 
-<!-- **THE IMPACT OF SHORT-TERM RENTALSS ON HOUSING AVAILABILITY AND AFFORDABILITY IN BRITISH COLUMBIA** -->
+<!-- **THE IMPACT OF SHORT-TERM RENTALS ON HOUSING AVAILABILITY AND AFFORDABILITY IN BRITISH COLUMBIA** -->
 
-<!-- - TKTK -->
-<!-- - TKTK -->
-<!-- - TKTK -->
-<!-- - TKTK -->
-<!-- - TKTK -->
-<!-- - TKTK -->
-<!-- - TKTK -->
+<!-- - At the end of 2021, short-term rentals were taking 13,730 housing units off of BC’s long-term
+market, a 13.9% decline compared to 2019. -->
+<!-- - Using a regression model, we found that an increase of one dedicated STR per 100 rental units predicts that average rents in the neighbourhood will be $44.97 higher. -->
+<!-- - From 2016-2021, we estimate that, if there had been no commercial STRs, BC renters would have saved $2.0 billion in rent. -->
+<!-- - During the 2017-2019 pre-pandemic period, the proliferation of dedicated STRs across BC accounts for fully 19.3% of the increases in rents which BC households were subjected to. -->
+<!-- - In 2020, when the number of commercial STRs plummeted because of the pandemic, our estimate is that 2020 rents increased 29.9% less than they otherwise would have, because of the decrease in commercial STRs that year. -->
+<!-- - If the province’s STR market returns to its pre-pandemic trajectory by the end of 2023, the loss of housing to STRs will be expected to drive up average monthly rents in medium and large cities in the province by $52.35 above their levels at the end of 2021. -->
 
 <!-- **COMMUNITY CASE STUDIES** -->
 
