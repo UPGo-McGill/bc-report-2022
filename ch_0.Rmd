@@ -1,11 +1,11 @@
 # Introduction {-}
 
-In May 2022, the Urban Politics and Governance research group (UPGo) at McGill University was commissioned British Columbia Hotel Association (BCHA) to conduct market research and analysis on short-term rentals (STRs) in the province of British Columbia (BC), the impact of STRs on the province's average rents and the policy best practices available for regulating STRs. To do so, this report will shed light on the following topics: 
+In May 2022, the Urban Politics and Governance research group (UPGo) at McGill University was commissioned by the British Columbia Hotel Association (BCHA) to conduct market research and analysis on short-term rentals (STRs) in the province of British Columbia (BC), the impact of STRs on the province's housing market, and the policy options available for regulating STRs. Specifically, this report will address the following topics: 
 
 - A general market overview of short-term rentals in the province, including the volume, revenue, type, size and distribution of units, the presence of dedicated commercial operations, and the impact of Covid-19 on the STR market.
 - An analysis of the impact of dedicated STRs on the province's rental housing stock, namely on the levels of rent increases from 2016-2021 by geographic region.
-- A presentation of community case studies, using five different regions representative of the different STR markets in the province.
-- A chapter on the regulatory environment of STRs, including an analysis of various novel STR regulation systems and overall best practices between governmental entities.
+- A presentation of community case studies, using five municipalities representative of the different STR markets in the province.
+- A set of regulatory recommendations, drawing on a set of Canadian examples and best practices.
 
 Data and methodology are discussed in the Appendix, and all the code used to generate the analysis in the report is available online at https://github.com/UPGo-McGill/bc-report-2022.
 
