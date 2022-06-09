@@ -36,7 +36,11 @@ lower than the pre-pandemic trend  -->
 
 <!-- **NAVIGATING SHORT-TERM RENTAL REGULATIONS** -->
 
-<!-- - TKTK. -->
-<!-- - TKTK -->
+<!-- - Vancouver's STR regulation shows an early success story in that the city has been effective at reducing the dedicated STRs which drive up housing costs comes from comparing Vancouver with peer cities nationally and with the rest of the Metro Vancouver region, bringing back 800 housing units to the long-term rental market. -->
+<!-- - Toronto’s registration system was successful at shifting market behavior, but by diverting properties out of the system, instead of capturing them within the system. Indeed, by leaving the possibility for hosts to change the minimum stay to 28 days, the registration offers a loophole for hosts not to register. -->
+<!-- The province of Quebec is considering applying a mandatory STR registration system. The registration would be mandatory to all, would not put any significant conditions on the operation of an STR, and include a principal residence distinction. -->
+<!-- The key missing feature from Quebec’s registration system is that it does not require online platforms to be accountable for enforcing the rules by only permitting listing with license numbers to be displayed on their site. -->
+<!-- We believe that a successful STR regulation system in BC would entail regulators to decide on three tasks: 1. They must decide on the appropriate regulations for the jurisdiction. 2. they must gather the information necessary to enforce the rules 3. they must enforce the rules. -->
+<!-- A successful STR regulation system would require collaboration between the province and the municipalities, leveraging the province's capacities and the municipalities' local knowledge to ensure that a STR regulation system successfully addresses housing concerns related to short-term rentals. -->
 
 \newpage
