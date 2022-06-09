@@ -26,9 +26,13 @@ market, a 13.9% decline compared to 2019. -->
 
 <!-- **COMMUNITY CASE STUDIES** -->
 
-<!-- - TKTK  -->
-<!-- - TKTK -->
-
+<!-- - The reservations and nightly prices dropped dramatically in the City of Vancouver because of the Covid-19 pandemic. STR reservations from March 2020 through March 2022 have been only 35.7% of what would have been expected for this time period and prices were 18.9% less.
+lower than the pre-pandemic trend  -->
+<!-- - We estimate that rents in Vancouver increased 97.6% less than they otherwise would have, because of the decrease in commercial STRs that year. -->
+<!-- In Richmond, during the 2017-2019 pre-pandemic period, the increase of dedicated STRs accounts for 37.2% of the increases in rents which Richmond households were subjected to. -->
+<!-- In Nanaimo, STR reservation from March 2020 through March 2022 have been only 44.8% of what would have been expected for this time, but, at the same time, average nightly prices have been elevated 13.5% over their pre-pandemic trend. -->
+<!--During the summer high season in 2021 in Kelowna, average nightly prices were 23.4% higher than the pre-pandemic trend, consistent with the pattern observed provincially, where international travel was cancelled and diverted to regional destinations, causing STR demand outside the major cities to remain reasonable strong, while supply constraints led that demand to manifest as higher prices rather than more listings. -->
+<!-- If STR activity returns to pre-pandemic trends in Summerland, the revival in STR activity will drive up average monthly rents by $143.14 above their levels at the end of 2021. -->
 
 <!-- **NAVIGATING SHORT-TERM RENTAL REGULATIONS** -->
 
