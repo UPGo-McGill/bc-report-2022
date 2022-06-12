@@ -9,6 +9,10 @@ library(fable)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 
+col_palette <-
+  c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
+    "#AE7673")
+
 
 # Active listings and revenue ---------------------------------------------
 
@@ -134,6 +138,80 @@ active_daily_tiers <-
   bind_rows(active_daily_tiers)
   
 
+# Figure 1 ----------------------------------------------------------------
+
+fig_1 <- 
+  active_daily_tiers |> 
+  group_by(tier) |> 
+  mutate(n = slider::slide_dbl(n, mean, .before = 13)) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  ungroup() |> 
+  filter(date >= "2017-07-01", !is.na(tier)) |> 
+  ggplot() +
+  geom_line(aes(date, n, colour = tier)) +
+  facet_wrap(~tier, scales = "free_y") +
+  scale_color_manual(values = col_palette[c(5, 6, 2, 7, 4, 8)], 
+                     guide = "none") +
+  scale_y_continuous(name = NULL, labels = scales::comma) +
+  scale_x_date(name = NULL) +
+  theme_minimal() +
+  theme(text = element_text(family = "Futura"),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+ggsave("output/figure_1.png", fig_1, width = 9, height = 5)
+
+
+# Table 1 -----------------------------------------------------------------
+
+tab_1 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2019, 2021)) |> 
+  left_join(select(st_drop_geometry(CSD), CSDUID = GeoUID, dwellings, name),
+            by = "CSDUID") |>
+  filter(!is.na(name)) |> 
+  group_by(name) |> 
+  summarize(active_2021 = sum(year(date) == 2021) / 365,
+            active_2019 = sum(year(date) == 2019) / 365,
+            active_growth = (active_2021 - active_2019) / active_2019,
+            active_pct = active_2021 / mean(dwellings),
+            rev_2021 = sum(price[status == "R" & year(date) == 2021]),
+            rev_2019 = sum(price[status == "R" & year(date) == 2019]),
+            rev_growth = (rev_2021 - rev_2019) / rev_2019,
+            .groups = "drop") |> 
+  arrange(-active_2021) |> 
+  slice(1:10)
+
+tab_1 <- 
+  daily |> 
+  filter(housing, status != "B", year(date) %in% c(2019, 2021)) |> 
+  summarize(active_2021 = sum(year(date) == 2021) / 365,
+            active_2019 = sum(year(date) == 2019) / 365,
+            active_growth = (active_2021 - active_2019) / active_2019,
+            active_pct = active_2021 / sum(CSD$dwellings, na.rm = TRUE),
+            rev_2021 = sum(price[status == "R" & year(date) == 2021]),
+            rev_2019 = sum(price[status == "R" & year(date) == 2019]),
+            rev_growth = (rev_2021 - rev_2019) / rev_2019,
+            .groups = "drop") |> 
+  mutate(name = "British Columbia", .before = active_2021) |> 
+  bind_rows(tab_1)
+
+tab_1 |> 
+  select(-active_2019, -rev_2019) |> 
+  mutate(active_2021 = scales::comma(active_2021, 10),
+         active_growth = scales::percent(active_growth, 0.1),
+         active_pct = scales::percent(active_pct, 0.1),
+         rev_2021 = scales::dollar(rev_2021, 0.1, scale = 1/1000000, 
+                                   suffix = " million"),
+         rev_growth = scales::percent(rev_growth, 0.1)) |> 
+  gt::gt()
+
+
 # Home sharers and commercial operators -----------------------------------
 
 eh_pct_2021 <- 
@@ -152,8 +230,7 @@ eh_pct_2019 <-
   pull(pct) |> 
   scales::percent(0.1)
 
-revenue_colour <- colorRampPalette(c("#FF6600", "#FFCC66", "#CC6699", "#3399CC", 
-                                     "#074387"))(10)
+revenue_colour <- col_palette[c(5, 2, 1, 3, 4, 8, 6, 7)]
 
 daily_for_rev <- 
   daily |>  
@@ -229,7 +306,7 @@ host_rev_data <-
 
 host_top_10_pct <- scales::percent(host_rev_data$rev_10, 0.1)
 host_top_1_pct <- scales::percent(host_rev_data$rev_1, 0.1)
-host_top_1_n <- scales::percent(host_rev_data$n_1, 0.1)
+host_top_1_n <- scales::comma(host_rev_data$n_1, 10)
 
 ml_active <- 
   daily |> 
@@ -260,6 +337,72 @@ ml_rev_pct_2021 <-
   summarize(rev_pct = sum(price[multi]) / sum(price)) |> 
   pull(rev_pct) |> 
   scales::percent(0.1)
+
+
+
+# Figure 2 ----------------------------------------------------------------
+
+fig_2 <- 
+  host_deciles |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  ggplot(aes(position, value, group = decile, fill = decile)) +
+  geom_area(colour = "white", lwd = 1.2) +
+  facet_wrap(~ tier, nrow = 2) +
+  scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
+                     breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
+                     sec.axis = sec_axis(~., 
+                                         name = "% of total revenue",
+                                         labels = derive(), 
+                                         breaks = derive())) +
+  scale_fill_gradientn(colours = revenue_colour) +
+  theme_void() +
+  theme(legend.position = "none",
+        text = element_text(family = "Futura"),
+        axis.text.y = element_text(hjust = 1),
+        axis.title.y.left = element_text(
+          angle = 90, margin = margin(0, 10, 0, 0)),
+        axis.title.y.right = element_text(
+          angle = 270, margin = margin(0, 0, 0, 10)),
+        axis.title.x = element_blank(), 
+        axis.text.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+ggsave("output/figure_2.png", fig_2, width = 9, height = 5)
+
+
+# Figure 3 ----------------------------------------------------------------
+
+fig_3 <- 
+  ml_active |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  group_by(tier) |> 
+  mutate(n = slider::slide_dbl(pct, mean, .before = 13)) |> 
+  ungroup() |> 
+  filter(date >= "2017-07-01", !is.na(tier)) |> 
+  ggplot() +
+  geom_line(aes(date, n, colour = tier)) +
+  facet_wrap(~tier) +
+  scale_color_manual(values = col_palette[c(5, 6, 2, 7, 4, 8)], 
+                     guide = "none") +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_x_date(name = NULL) +
+  theme_minimal() +
+  theme(text = element_text(family = "Futura"),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+ggsave("output/figure_3.png", fig_3, width = 9, height = 5)
 
 
 # Growth trends: pre- and post-Covid --------------------------------------
@@ -325,6 +468,40 @@ active_change_pct_2021 <-
   summarize(pct = (n[year == 2021] - n[year == 2020]) / n[year == 2020]) |> 
   pull(pct) |> 
   scales::percent(0.1)
+
+
+# Figure 4 ----------------------------------------------------------------
+
+fig_4 <- 
+  daily_variation |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  group_by(tier) |> 
+  mutate(n = slide_dbl(n, mean, .before = 20, .complete = TRUE)) |> 
+  ungroup() |> 
+  ggplot(aes(date, n, colour = tier)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_line(lwd = 1, na.rm = TRUE) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, limits = c(-0.6, 0.6), 
+                     labels = scales::percent) +
+  scale_color_manual(values = col_palette[c(5, 6, 2, 7, 4, 8)], 
+                     guide = "none") +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = "none", panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_4.png", fig_4, width = 9, height = 5)
+
+
+# Trend analysis ----------------------------------------------------------
 
 # Get daily reservations and prices
 reservations_and_prices <- 
@@ -496,6 +673,128 @@ covid_res_res_total <-
 covid_res_res_pct <- 
   {covid_res_res_total / (covid_res_res_dif + covid_res_res_total)} |> 
   scales::percent(0.1)
+
+
+# Figure 5 ----------------------------------------------------------------
+
+fig_5 <- 
+  reservations_and_prices |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  group_by(tier) |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  ungroup() |> 
+  mutate(res_trend = if_else(date <= "2020-03-14", NA_real_, res_trend)) |> 
+  select(tier, date, res, res_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2019-07-05" & name == "res" ~ 
+      "Actual reservations", 
+    tier == "All" & date == "2020-08-05" & name == "res_trend" ~ 
+      "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {
+                reservations_and_prices |> 
+                  mutate(tier = case_when(
+                    tier == "All" ~ "All",
+                    tier == "CA" ~ "Mid-sized cities",
+                    tier == "CC" ~ "Core cities",
+                    tier == "CMA" ~ "Large regions",
+                    tier == "NU" ~ "Non-urban",
+                    tier == "RES" ~ "Resort towns")) |> 
+                  group_by(tier) |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  ungroup() |> 
+                  mutate(res_trend = if_else(date <= "2020-03-14", NA_real_, 
+                                             res_trend))}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_5.png", fig_5, width = 9, height = 5)
+
+
+# Figure 6 ----------------------------------------------------------------
+
+fig_6 <-
+  reservations_and_prices |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  group_by(tier) |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  ungroup() |> 
+  mutate(price_trend = if_else(date <= "2020-03-14", NA_real_, price_trend)) |> 
+  select(tier, date, price, price_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2018-11-05" & name == "price" ~ 
+      "Actual price", 
+    tier == "All" & date == "2021-01-05" & name == "price_trend" ~ 
+      "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {
+                reservations_and_prices |> 
+                  mutate(tier = case_when(
+                    tier == "All" ~ "All",
+                    tier == "CA" ~ "Mid-sized cities",
+                    tier == "CC" ~ "Core cities",
+                    tier == "CMA" ~ "Large regions",
+                    tier == "NU" ~ "Non-urban",
+                    tier == "RES" ~ "Resort towns")) |> 
+                  group_by(tier) |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE)) |> 
+                  ungroup() |> 
+                  mutate(price_trend = if_else(
+                    date <= "2020-03-14", NA_real_, price_trend))}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_6.png", fig_6, width = 9, height = 5)
 
 
 # Save output -------------------------------------------------------------

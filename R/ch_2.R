@@ -12,6 +12,10 @@ qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 qs::qload("output/data/FREH_model.qsm", nthreads = future::availableCores())
 qs::qload("output/data/model_chapter.qsm", nthreads = future::availableCores())
 
+col_palette <-
+  c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
+    "#AE7673")
+
 
 # STR-induced housing loss ------------------------------------------------
 
@@ -107,6 +111,32 @@ housing_loss_decline_pct_2019_2021 <-
   pull(pct) |> 
   abs() |> 
   scales::percent(0.1)
+
+
+# Figure 7 ----------------------------------------------------------------
+
+fig_7 <- 
+  housing_loss |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
+  geom_col(lwd = 0) +
+  scale_fill_manual(values = col_palette[c(6, 5)]) +
+  scale_x_date(name = NULL, limits = c(as.Date("2017-07-01"), NA)) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_7.png", fig_7, width = 9, height = 5)
 
 
 # Housing loss model ------------------------------------------------------
@@ -243,6 +273,67 @@ housing_loss_cc_dif_pct_end_2021 <-
   scales::percent(0.1)
 
 
+# Figure 8 ----------------------------------------------------------------
+
+fig_8 <- 
+  housing_loss_daily_model |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  group_by(tier) |>
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  ungroup() |>
+  select(tier, date, units, units_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2020-07-05" & name == "units" ~ 
+      "Actual housing loss", 
+    tier == "All" & date == "2020-11-07" & name == "units_trend" ~ 
+      "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model |> 
+                  mutate(tier = case_when(
+                    tier == "All" ~ "All",
+                    tier == "CA" ~ "Mid-sized cities",
+                    tier == "CC" ~ "Core cities",
+                    tier == "CMA" ~ "Large regions",
+                    tier == "NU" ~ "Non-urban",
+                    tier == "RES" ~ "Resort towns")) |> 
+                  group_by(tier) |>
+                  mutate(units_trend = slider::slide_dbl(
+                    units_trend, mean, .before = 6, .complete = TRUE)) |>
+                  ungroup()}, fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_8.png", fig_8, width = 9, height = 5)
+
+
+
+
 # The impact of dedicated STRs on residential rents in BC -----------------
 
 # A regression model of dedicated STRs and residential rent ---------------
@@ -262,6 +353,144 @@ model_iv_coef_dollar <- scales::dollar(model$coefficients[["iv"]], 0.01)
 model_year_coef_dollar <- scales::dollar(model$coefficients[["year"]], 0.01)
 model_renter_coef_dollar <- scales::dollar(model$coefficients[["renter_pct"]], 
                                            0.01)
+
+
+# Figure 9 ----------------------------------------------------------------
+
+fig_9 <- 
+  cmhc$rent |> 
+  filter(!is.na(tier)) |> 
+  mutate(tier = "All") |> 
+  bind_rows(cmhc$rent) |> 
+  select(tier, year, neighbourhood, total) |> 
+  filter(!is.na(tier)) |> 
+  mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "RES/NU" ~ "Resort towns / Non-urban")) |> 
+  ggplot(aes(year, total, colour = tier)) +
+  geom_line(aes(group = neighbourhood), alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_continuous(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::dollar) +
+  scale_color_manual(values = col_palette[c(5, 6, 2, 7, 4)], guide = "none") +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = "none", panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_9.png", fig_9, width = 9, height = 5)
+
+
+# Figure 10 ---------------------------------------------------------------
+
+find_outliers <- function(x) {
+  q1 <- quantile(x, 0.25, na.rm = TRUE)
+  q3 <- quantile(x, 0.75, na.rm = TRUE)
+  iqr <- (q3 - q1) * 1.5
+  which(x < q1 - iqr | x > q3 + iqr)
+}
+
+fig_10 <-
+  cmhc_str[-find_outliers(cmhc_str$iv), ] |> 
+  mutate(tier = "All") |> 
+  bind_rows(cmhc_str[-find_outliers(cmhc_str$iv), ]) |> 
+  mutate(year = year + 2016) |> 
+  filter(!is.na(tier)) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "RES/NU" ~ "Resort towns / Non-urban")) |> 
+  ggplot(aes(iv, total_rent)) +
+  geom_point(aes(color = year), size = 0.5) +
+  geom_smooth(color = "black", se = FALSE, method = "lm") +
+  scale_y_continuous(name = "Average monthly rent", labels = scales::dollar) +
+  scale_x_continuous(name = "Dedicated STRs per 100 rental units") +
+  scale_color_stepsn(name = NULL, colours = col_palette[c(1, 2, 5)]) +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = c(0.97, 0.12), legend.justification = c(1, 0),
+        legend.key.width = unit(1, "cm"), legend.direction = "horizontal",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_10.png", fig_10, width = 9, height = 5)
+
+
+# Figure 11 ---------------------------------------------------------------
+
+fig_11 <- 
+  rent_change_table_year |> 
+  select(year, tier, med_rent, raw_rent) |> 
+  pivot_longer(med_rent:raw_rent) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "RES/NU" ~ "Resort towns / Non-urban")) |> 
+  arrange(year, tier, desc(name)) |> 
+  ggplot() +
+  geom_col(aes(year, value, group = name, fill = name),
+           position = position_dodge(width = -0.5)) +
+  geom_segment(data = rent_change_table_year |> 
+                 mutate(tier = case_when(
+                   tier == "All" ~ "All",
+                   tier == "CA" ~ "Mid-sized cities",
+                   tier == "CC" ~ "Core cities",
+                   tier == "CMA" ~ "Large regions",
+                   tier == "RES/NU" ~ "Resort towns / Non-urban")),
+               mapping = aes(x = year, xend = year, y = raw_rent, 
+                             yend = med_rent),
+               size = 1,
+               arrow = arrow(length = unit(0.3, "cm")),
+               position = position_nudge(x = -0.125)) +
+  scale_y_continuous(name = NULL, labels = scales::dollar) +
+  scale_x_continuous((name = NULL)) +
+  scale_fill_brewer(name = NULL, palette = "Accent", labels = c(
+    "Actual median rent change",
+    "Estimated median rent change\nwith no change in dedicated STRs")) +
+  facet_wrap(~tier) +
+  theme_minimal() +
+  theme(legend.position = c(0.97, 0.12), legend.justification = c(1, 0),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_11.png", fig_11, width = 9, height = 5)
+
+
+# Table 3 -----------------------------------------------------------------
+
+rent_change_table |> 
+  select(-starts_with("mean")) |> 
+  pivot_wider(names_from = year, values_from = med_rent:str_incr) |> 
+  relocate(ends_with("2019"), .after = tier) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "RES/NU" ~ "Resort towns / Non-urban")) |> 
+  mutate(across(c(med_rent_2017_2019, med_str_2017_2019, med_rent_2020,
+                  med_str_2020), scales::dollar, 1),
+         across(contains("incr"), scales::percent, 0.1)) |> 
+  mutate(med_str_2017_2019 = paste0(med_str_2017_2019, " (", med_incr_2017_2019, ")"),
+         med_str_2020 = paste0(med_str_2020, " (", med_incr_2020, ")")) |> 
+  select(-med_incr_2017_2019, -med_incr_2020) |> 
+  set_names(c("Community type", 
+              "Median YOY monthly rent chg. (2017-19)",
+              "Median YOY impact of STR chg. on monthly rent chg. (2017-19)",
+              "Total YOY impact of STR chg. on monthly rent chg. (2017-19)",
+              "Median YOY monthly rent chg. (2020)",
+              "Median YOY impact of STR chg. on monthly rent chg. (2020)",
+              "Total YOY impact of STR chg. on monthly rent chg. (2020)")) |> 
+  gt::gt()
 
 
 # The burden of STRs on BC renter households ------------------------------
@@ -499,6 +728,65 @@ rent_total_2021_2023 <-
   filter(tier == "All") |> 
   pull(rent_inc) |> 
   scales::dollar(0.1, scale = 1/1000000, suffix = " million")
+
+
+# Figure 12 ---------------------------------------------------------------
+
+fig_12 <- 
+  housing_loss_daily_model_2023 |> 
+  group_by(tier) |>
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  ungroup() |>
+  select(tier, date, units, units_trend) |> 
+  pivot_longer(-c(tier, date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(tier = case_when(
+    tier == "All" ~ "All",
+    tier == "CA" ~ "Mid-sized cities",
+    tier == "CC" ~ "Core cities",
+    tier == "CMA" ~ "Large regions",
+    tier == "NU" ~ "Non-urban",
+    tier == "RES" ~ "Resort towns")) |> 
+  mutate(label = case_when(
+    tier == "All" & date == "2020-06-05" & name == "units" ~ 
+      "Actual housing loss", 
+    tier == "All" & date == "2021-04-07" & name == "units_trend" ~ 
+      "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_2023 |> 
+                  mutate(tier = case_when(
+                    tier == "All" ~ "All",
+                    tier == "CA" ~ "Mid-sized cities",
+                    tier == "CC" ~ "Core cities",
+                    tier == "CMA" ~ "Large regions",
+                    tier == "NU" ~ "Non-urban",
+                    tier == "RES" ~ "Resort towns")) |> 
+                  group_by(tier) |>
+                  mutate(units_trend = slider::slide_dbl(
+                    units_trend, mean, .before = 6, .complete = TRUE)) |>
+                  ungroup()}, fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 1) +
+  geom_label(aes(date, value, label = label, color = name), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  facet_wrap(~tier, scales = "free_y") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_12.png", fig_12, width = 9, height = 5)
 
   
 # Save output -------------------------------------------------------------

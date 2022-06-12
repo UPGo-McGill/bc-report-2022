@@ -9,9 +9,13 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(slider)
 library(lubridate)
-qs::qload("output/data/ch_1.qsm", nthreads = 8)
+qs::qload(here::here("output/data/ch_1.qsm"), nthreads = 8)
+
+
 col_palette <-
-  c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
+    "#AE7673")
+
 ```
 
 ### Executive summary
