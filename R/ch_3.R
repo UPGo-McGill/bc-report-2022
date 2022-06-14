@@ -8,10 +8,15 @@ library(feasts)
 library(fable)
 library(sf)
 library(osmdata)
+library(patchwork)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
 qs::qload("output/data/model_chapter.qsm", nthreads = future::availableCores())
 qs::qload("output/data/geometry.qsm", nthreads = future::availableCores())
+
+col_palette <-
+  c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
+    "#AE7673")
 
 case_studies <- c("Vancouver", "Richmond", "Nanaimo", "Kelowna", "Summerland")
 
@@ -19,6 +24,31 @@ model_iv_coef_dollar <- scales::dollar(model$coefficients[["iv"]], 0.01)
 model_year_coef_dollar <- scales::dollar(model$coefficients[["year"]], 0.01)
 model_renter_coef_dollar <- scales::dollar(model$coefficients[["renter_pct"]], 
                                            0.01)
+
+
+# Figure 13 ---------------------------------------------------------------
+
+fig_13 <- 
+  CSD |> 
+  filter(name %in% case_studies) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(fill = "grey20", colour = "white", lwd = 0.2) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  ggrepel::geom_label_repel(aes(label = name, geometry = geometry), 
+                            stat = "sf_coordinates", family = "Futura",
+                            nudge_x = c(-50000, 50000, 50000, -50000, 50000),
+                            nudge_y = c(50000, -50000, 50000, 50000, 50000)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name %in% case_studies))[c(1, 3)] * 
+             c(0.8, 1),
+           ylim = c(st_bbox(CSD)[2], 
+                    st_bbox(filter(CSD, name %in% case_studies))[c(4)] * 
+                      1.05)) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_13.png", fig_13, width = 3.375, height = 5)
 
 
 # Vancouver ---------------------------------------------------------------
@@ -518,14 +548,18 @@ qs::qload("data/matches_raw.qsm")
 ltr <- qs::qread("data/ltr_processed.qs", nthreads = future::availableCores())
 
 first_photo_pair <- 
-  cl_matches |> 
-  filter(confirmation == "match") |> 
-  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-18753643.jpg")
+  cl_matches |>
+  filter(confirmation == "match") |>
+  filter(
+    x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-18753643.jpg") |>
+  mutate(x_name = "data/ab_1.jpg", y_name = "data/cl_1.jpg")
 
 second_photo_pair <- 
   cl_matches |> 
   filter(confirmation == "match") |> 
-  filter(x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-10972081.jpg")
+  filter(
+    x_name == "/Volumes/Data 2/Scrape photos/vancouver/ab/ab-10972081.jpg") |> 
+  mutate(x_name = "data/ab_2.jpg", y_name = "data/cl_2.jpg")
 
 titles <- list(
   
@@ -554,6 +588,249 @@ titles <- list(
     str_remove(' - apts.*')
 )
 
+
+# Figure 14 ---------------------------------------------------------------
+
+fig_14 <- 
+  active_daily_V |> 
+  filter(date >= "2017-06-15") |> 
+  mutate(label = case_when(
+    date == "2019-09-01" & group == "Vancouver" ~ "Vancouver", 
+    date == "2018-01-01" & group == "Central city average" ~ 
+      "Central city average", TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1) +
+  geom_label(aes(date, n_pct, label = label, color = group), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = col_palette[c(6, 5)], 
+                      na.value = "transparent") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_14.png", fig_14, width = 5, height = 5)
+
+
+# Figure 15 ---------------------------------------------------------------
+
+fig_15_left <-
+  property_V |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  st_filter(filter(CSD, name == "Vancouver")) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Vancouver"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_V, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_V_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.4, alpha = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Vancouver"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Vancouver"))[c(2, 4)]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 6, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_15_right <-
+  CT |> 
+  filter(CSD_UID == "5915022") |> 
+  inner_join(listings_pct_V) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Vancouver"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_V, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_V_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_stepsn(name = "STR listings as % of dwelling units",
+                    labels = scales::percent, n.breaks = 7, 
+                    colours = col_palette[c(6, 1, 2, 5)],
+                    limits = c(0, 0.06)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Vancouver"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Vancouver"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(0.6, "cm"),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_15 <- fig_15_left + fig_15_right
+
+ggsave("output/figure_15.png", fig_15, width = 9, height = 5)
+
+
+# Figure 16 ---------------------------------------------------------------
+
+p1 <- 
+  reservations_and_prices_V |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_V |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, 
+                                             res_trend))
+              }, fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p2 <- 
+  reservations_and_prices_V |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-06-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_V |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+p3 <- 
+  housing_loss_daily_model_V |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31") |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2020-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-16" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_V |> 
+                  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                                 .complete = TRUE)) |>
+                  select(date, units, units_trend) |> 
+                  filter(date <= "2022-03-31")}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_16 <- p1 + p2 + p3
+
+ggsave("output/figure_16.png", fig_16, width = 9, height = 4)
+
+
+# Figure 17 ---------------------------------------------------------------
+
+library(imager)
+
+fig_17 <- 
+  pmap(list(list(first_photo_pair$x_name, first_photo_pair$y_name, 
+               second_photo_pair$x_name, second_photo_pair$y_name), 
+          titles, c("A", "B", "C", "D")), 
+     ~{.x |>  
+         load.image() |> 
+         as.data.frame(wide = "c") |> 
+         mutate(rgb = rgb(c.1, c.2, c.3)) |> 
+         ggplot(aes(x, y)) +
+         geom_raster(aes(fill = rgb)) + 
+         scale_fill_identity() +
+         scale_y_continuous(trans = scales::reverse_trans()) +
+         ggtitle(paste0(..3, ". ", case_when(
+           str_detect(..1, "ab_") ~ "Airbnb",
+           str_detect(..1, "cl_") ~ "Craigslist",
+           str_detect(..1, "kj_") ~ "Kijiji")),
+           subtitle = paste0('"', ..2, '"')) +
+         theme_void() +
+         theme(text = element_text(family = "Futura"),
+           plot.title = element_text(face = "bold", size = 9),
+               plot.subtitle = element_text(face = "plain", size = 9))}) |>  
+  patchwork::wrap_plots()
+
+ggsave("output/figure_17.png", fig_17, width = 9, height = 5)
+
+
+# Figure 18 ---------------------------------------------------------------
+
+fig_18 <- 
+  rent_change_2023_table_V |> 
+  left_join(filter(cmhc_str, year == 5)) |> 
+  mutate(label = scales::dollar(str_2023, 1, prefix = "+$")) |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Vancouver"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(aes(fill = rent_2023_pct), colour = "white") +
+  geom_sf(data = streets_V, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_V_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf_label(aes(label = label), size = 1.4, family = "Futura",
+                fill = alpha("white", 0.85)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Vancouver"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Vancouver"))[c(2, 4)]) +
+  scale_fill_viridis_b(
+    name = "STR-induced monthly rent increase\nas % of expected 2023 rent",
+    limits = c(0.02, 0.06), n.breaks = 5, labels = scales::percent) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura", size = 8))
+
+ggsave("output/figure_18.png", fig_18, width = 3.375, height = 4)
 
 
 
@@ -1049,6 +1326,220 @@ rent_change_2023_table_R <-
          rent_inc_pct = str_2023 / (str_2023 + year_2023 * 2))
 
 
+# Figure 19 ---------------------------------------------------------------
+
+fig_19 <- 
+  active_daily_R |> 
+  filter(date >= "2017-06-15") |> 
+  mutate(label = case_when(
+    date == "2019-09-01" & group == "Richmond" ~ "Richmond", 
+    date == "2018-04-01" & group == "Large urban region average" ~ 
+      "Large urban region average", TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1) +
+  geom_label(aes(date, n_pct, label = label, color = group), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = col_palette[c(6, 5)], 
+                      na.value = "transparent") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_19.png", fig_19, width = 5, height = 5)
+
+
+# Figure 20 ---------------------------------------------------------------
+
+fig_20_left <-
+  property_R |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  st_filter(filter(CSD, name == "Richmond")) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_R, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.4, alpha = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 6, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_20_right <-
+  CT |> 
+  filter(CSD_UID == "5915015") |> 
+  inner_join(listings_pct_R) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_R, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_stepsn(name = "STR listings as % of dwelling units",
+                    labels = scales::percent, n.breaks = 7, 
+                    colours = col_palette[c(6, 1, 2, 5)],
+                    limits = c(0, 0.06)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(0.6, "cm"),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_20 <- fig_20_left + fig_20_right
+
+ggsave("output/figure_20.png", fig_20, width = 9, height = 5)
+
+
+# Figure 21 ---------------------------------------------------------------
+
+fig_21_1 <- 
+  reservations_and_prices_R |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_R |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, 
+                                             res_trend))
+              }, fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_21_2 <- 
+  reservations_and_prices_R |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-06-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_R |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_21_3 <- 
+  housing_loss_daily_model_R |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31") |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2020-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-16" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_R |> 
+                  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                                 .complete = TRUE)) |>
+                  select(date, units, units_trend) |> 
+                  filter(date <= "2022-03-31")}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_21 <- fig_21_1 + fig_21_2 + fig_21_3
+
+ggsave("output/figure_21.png", fig_21, width = 9, height = 4)
+
+
+# Figure 22 ---------------------------------------------------------------
+
+fig_22 <- 
+  rent_change_2023_table_R |> 
+  left_join(filter(cmhc_str, year == 5)) |> 
+  mutate(label = scales::dollar(str_2023, 1, prefix = "+$")) |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Richmond"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(aes(fill = rent_2023_pct), colour = "white") +
+  geom_sf(data = streets_R, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_R_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf_label(aes(label = label), size = 1.4, family = "Futura",
+                fill = alpha("white", 0.85)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Richmond"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Richmond"))[c(2, 4)]) +
+  scale_fill_viridis_b(
+    name = "STR-induced monthly rent increase\nas % of expected 2023 rent",
+    limits = c(0.02, 0.06), n.breaks = 5, labels = scales::percent) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura", size = 8))
+
+ggsave("output/figure_22.png", fig_22, width = 3.375, height = 4)
+
+
 # Nanaimo -----------------------------------------------------------------
 
 property_N <- 
@@ -1520,6 +2011,191 @@ rent_inc_monthly_2021_2023_N <-
 rent_inc_annual_2021_2023_N <- 
   (parse_number(rent_inc_monthly_2021_2023_N) * 12) |> 
   scales::dollar(1)
+
+
+# Figure 23 ---------------------------------------------------------------
+
+fig_23 <- 
+  active_daily_N |> 
+  filter(date >= "2017-06-15") |> 
+  mutate(label = case_when(
+    date == "2019-10-15" & group == "Nanaimo" ~ "Nanaimo", 
+    date == "2021-07-01" & group == "Mid-sized city average" ~ 
+      "Mid-sized city average", TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1) +
+  geom_label(aes(date, n_pct, label = label, color = group), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = col_palette[c(6, 5)], 
+                      na.value = "transparent") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_23.png", fig_23, width = 5, height = 5)
+
+
+# Figure 24 ---------------------------------------------------------------
+
+fig_24_left <-
+  property_N |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  st_filter(filter(CSD, name == "Nanaimo")) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_N, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_N_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.4, alpha = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Nanaimo"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Nanaimo"))[c(2, 4)]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 6, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_24_right <-
+  CT |> 
+  filter(CSD_UID == "5921007") |> 
+  inner_join(listings_pct_N) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Nanaimo"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_N, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_N_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_stepsn(name = "STR listings as % of dwelling units",
+                    labels = scales::percent, n.breaks = 7, 
+                    colours = col_palette[c(6, 1, 2, 5)],
+                    limits = c(0, 0.06)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Nanaimo"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Nanaimo"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(0.6, "cm"),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_24 <- fig_24_left + fig_24_right
+
+ggsave("output/figure_24.png", fig_24, width = 9, height = 5)
+
+
+# Figure 25 ---------------------------------------------------------------
+
+fig_25_1 <- 
+  reservations_and_prices_N |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_N |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, 
+                                             res_trend))
+              }, fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_25_2 <- 
+  reservations_and_prices_N |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-06-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_N |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_25_3 <- 
+  housing_loss_daily_model_N |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31") |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2020-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-16" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_N |> 
+                  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                                 .complete = TRUE)) |>
+                  select(date, units, units_trend) |> 
+                  filter(date <= "2022-03-31")}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_25 <- fig_25_1 + fig_25_2 + fig_25_3
+
+ggsave("output/figure_25.png", fig_25, width = 9, height = 4)
+
 
 
 # Kelowna -----------------------------------------------------------------
@@ -2005,6 +2681,192 @@ rent_inc_annual_2021_2023_K <-
   scales::dollar(1)
 
 
+# Figure 26 ---------------------------------------------------------------
+
+fig_26 <- 
+  active_daily_K |> 
+  filter(date >= "2017-06-15") |> 
+  mutate(label = case_when(
+    date == "2019-10-15" & group == "Kelowna" ~ "Kelowna", 
+    date == "2021-07-01" & group == "Resort community average" ~ 
+      "Resort community average", TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1) +
+  geom_label(aes(date, n_pct, label = label, color = group), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = col_palette[c(6, 5)], 
+                      na.value = "transparent") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_26.png", fig_26, width = 5, height = 5)
+
+
+# Figure 27 ---------------------------------------------------------------
+
+fig_27_left <-
+  property_K |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  st_filter(filter(CSD, name == "Kelowna")) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Kelowna"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_K, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_K_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.4, alpha = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Kelowna"))[c(1, 3)] * 
+             c(0.99, 1.01),
+           ylim = st_bbox(filter(CSD, name == "Kelowna"))[c(2, 4)]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 6, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_27_right <-
+  CT |> 
+  filter(CSD_UID == "5935010") |> 
+  inner_join(listings_pct_K) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Kelowna"), fill = "grey90", 
+          colour = "transparent") +
+  geom_sf(aes(fill = pct), colour = "white", size = 0.5) +
+  geom_sf(data = streets_K, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_K_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  scale_fill_stepsn(name = "STR listings as % of dwelling units",
+                    labels = scales::percent, n.breaks = 7, 
+                    colours = col_palette[c(6, 1, 2, 5)],
+                    limits = c(0, 0.06)) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Kelowna"))[c(1, 3)] * 
+             c(0.99, 1.01),
+           ylim = st_bbox(filter(CSD, name == "Kelowna"))[c(2, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(0.6, "cm"),
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+fig_27 <- fig_27_left + fig_27_right
+
+ggsave("output/figure_27.png", fig_27, width = 9, height = 5)
+
+
+# Figure 28 ---------------------------------------------------------------
+
+fig_28_1 <- 
+  reservations_and_prices_K |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_K |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, 
+                                             res_trend))
+              }, fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_28_2 <- 
+  reservations_and_prices_K |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-06-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_K |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_28_3 <- 
+  housing_loss_daily_model_K |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31") |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2020-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-16" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_K |> 
+                  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                                 .complete = TRUE)) |>
+                  select(date, units, units_trend) |> 
+                  filter(date <= "2022-03-31")}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_28 <- fig_28_1 + fig_28_2 + fig_28_3
+
+ggsave("output/figure_28.png", fig_28, width = 9, height = 4)
+
+
 # Summerland --------------------------------------------------------------
 
 property_S <- 
@@ -2486,6 +3348,165 @@ rent_inc_monthly_2021_2023_S <-
 rent_inc_annual_2021_2023_S <- 
   (parse_number(rent_inc_monthly_2021_2023_S) * 12) |> 
   scales::dollar(1)
+
+
+# Figure 29 ---------------------------------------------------------------
+
+fig_29 <- 
+  active_daily_S |> 
+  filter(date >= "2017-06-15") |> 
+  mutate(label = case_when(
+    date == "2019-10-15" & group == "Summerland" ~ "Summerland", 
+    date == "2021-07-01" & group == "Non-urban average" ~ 
+      "Non-urban average", TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_line(aes(date, n_pct, colour = group), lwd = 1) +
+  geom_label(aes(date, n_pct, label = label, color = group), 
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(name = NULL, values = col_palette[c(6, 5)], 
+                      na.value = "transparent") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_29.png", fig_29, width = 5, height = 5)
+
+
+# Figure 30 ---------------------------------------------------------------
+
+fig_30 <-
+  property_S |> 
+  filter(created <= "2021-12-31", scraped >= "2021-01-01") |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |> 
+  st_transform(32610) |> 
+  st_filter(filter(CSD, name == "Summerland")) |> 
+  ggplot() +
+  geom_sf(data = CSD, colour = "transparent", fill = "grey80") +
+  geom_sf(data = filter(CSD, name == "Summerland"), fill = "grey90",
+          colour = "transparent") +
+  geom_sf(data = streets_S, colour = "#FFFFFF90", lwd = 0.25) +
+  geom_sf(data = streets_S_2, colour = "#FFFFFF80", lwd = 0.15) +
+  geom_sf(data = water, fill = "white", colour = "transparent") +
+  geom_sf(aes(colour = listing_type), size = 0.4, alpha = 0.5) +
+  coord_sf(xlim = st_bbox(filter(CSD, name == "Summerland"))[c(1, 3)],
+           ylim = st_bbox(filter(CSD, name == "Summerland"))[c(2, 4)]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 6, 4)]) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        plot.background = element_rect(fill = "white", colour = "transparent"),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figure_30.png", fig_30, width = 5, height = 5)
+
+
+# Figure 31 ---------------------------------------------------------------
+
+fig_31_1 <- 
+  reservations_and_prices_S |> 
+  mutate(res = slide_dbl(res, mean, .before = 6, .complete = TRUE)) |> 
+  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, res_trend)) |> 
+  select(date, res, res_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "res" ~ "Actual reservations", 
+    date == "2020-08-05" & name == "res_trend" ~ "Expected reservations",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = res, ymax = res_trend, group = 1),
+              data = {reservations_and_prices_S |> 
+                  mutate(res = slider::slide_dbl(res, mean, .before = 6, 
+                                                 .complete = TRUE)) |> 
+                  mutate(res_trend = if_else(date <= "2020-03-01", NA_real_, 
+                                             res_trend))
+              }, fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual reservations", "Expected reservations"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_31_2 <- 
+  reservations_and_prices_S |> 
+  mutate(price = slide_dbl(price, mean, .before = 6, .complete = TRUE)) |> 
+  select(date, price, price_trend) |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2019-07-05" & name == "price" ~ "Actual price", 
+    date == "2021-06-01" & name == "price_trend" ~ "Expected price",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = price, ymax = price_trend, group = 1),
+              data = {reservations_and_prices_S |> 
+                  mutate(price = slider::slide_dbl(price, mean, .before = 6, 
+                                                   .complete = TRUE))}, 
+              fill = col_palette[2],
+              alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual price", "Expected price"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_31_3 <- 
+  housing_loss_daily_model_S |> 
+  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                 .complete = TRUE)) |>
+  select(date, units, units_trend) |> 
+  filter(date <= "2022-03-31") |> 
+  pivot_longer(-c(date)) |> 
+  filter(!is.na(value)) |> 
+  mutate(label = case_when(
+    date == "2020-05-05" & name == "units" ~ "Actual housing loss", 
+    date == "2020-03-16" & name == "units_trend" ~ "Expected housing loss",
+    TRUE ~ NA_character_)) |> 
+  ggplot() +
+  geom_ribbon(aes(x = date, ymin = units, ymax = units_trend, group = 1),
+              data = {
+                housing_loss_daily_model_S |> 
+                  mutate(units_trend = slide_dbl(units_trend, mean, .before = 6, 
+                                                 .complete = TRUE)) |>
+                  select(date, units, units_trend) |> 
+                  filter(date <= "2022-03-31")}, 
+              fill = col_palette[2], alpha = 0.3) +
+  geom_line(aes(date, value, color = name), lwd = 0.5) +
+  geom_label(aes(date, value, label = label, color = name), family = "Futura",
+             fill = alpha("white", 0.75), size = 3) +
+  scale_x_date(name = NULL, limits = as.Date(c("2018-01-01", NA))) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = NULL, 
+                     labels = c("Actual STR housing loss", 
+                                "Expected STR housing loss"), 
+                     values = col_palette[c(5, 6)]) +
+  theme_minimal() +
+  theme(legend.position = "none", text = element_text(family = "Futura"),
+        panel.grid.minor.x = element_blank(),
+        plot.background = element_rect(fill = "white", colour = "transparent"))
+
+fig_31 <- fig_31_1 + fig_31_2 + fig_31_3
+
+ggsave("output/figure_31.png", fig_31, width = 9, height = 4)
 
 
 # Save output -------------------------------------------------------------
