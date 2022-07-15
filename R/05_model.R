@@ -1,5 +1,4 @@
-#### MODELIZATION ##############################################################
-
+#### 05 RENT MODEL #############################################################
 
 # Load libraries ----------------------------------------------------------
 
@@ -131,10 +130,12 @@ DA_area <-
          # accomodation = `v_CA16_5753: 72 Accommodation and food services`,
          # all_industry = `v_CA16_5699: All industry categories`,
          renter = `v_CA16_4838: Renter`,
-         parent_renter = `v_CA16_4836: Total - Private households by tenure - 25% sample data`,
+         parent_renter = 
+           `v_CA16_4836: Total - Private households by tenure - 25% sample data`
          # dwellings_value_avg = `v_CA16_4896: Average value of dwellings ($)`,
          # movers_5yrs = `v_CA16_6725: Movers`,
-         # parent_movers_5yrs = `v_CA16_6719: Total - Mobility status 5 years ago - 25% sample data`
+         # parent_movers_5yrs = 
+         #   `v_CA16_6719: Total - Mobility status 5 years ago - 25% sample data`
          ) |> 
   # mutate(tourism = arts + accomodation) |> 
   mutate(DA_area = units::drop_units(st_area(geometry)))
@@ -228,9 +229,9 @@ cmhc_str <-
     housing_loss <- 
       housing_loss |> 
       left_join(select(cmhc_zones, cmhc_zone = cmhc_zone,
-                    dwellings), by = "cmhc_zone") |> 
-      transmute(cmhc_zone,
-                housing_loss_p_dwellings = housing_loss / dwellings * 100 / 365)
+                       dwellings, renter_pct), by = "cmhc_zone") |> 
+      transmute(cmhc_zone, housing_loss_p_dwellings = housing_loss / 
+                  (renter_pct * dwellings) * 100 / 365)
     
     FREH_zones <- 
       property |> 
@@ -305,7 +306,7 @@ cmhc_str <-
   cmhc_str |> 
   mutate(year = year - 2016) |> 
   filter(!is.na(tier)) |> 
-  # Combine RES/NU because of few observation
+  # Combine RES/NU because of few observations
   mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
   rename(iv = housing_loss_p_dwellings)
 
@@ -318,5 +319,5 @@ qs::qsavem(model, cmhc_str, cmhc_zones, cmhc,
            file = "output/data/model_chapter.qsm")
 
 # Save cmhc_zone in the property df
-qs::qsavem(property, daily, GH, exchange_rates,
-           file = "output/data_processed.qsm", nthreads = availableCores())
+qs::qsavem(property, daily, GH, file = "output/data/data_processed.qsm", 
+           nthreads = availableCores())

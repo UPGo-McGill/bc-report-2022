@@ -1,18 +1,4 @@
-#### 08 FREH MODEL #############################################################
-
-#' This script is moderately time-consuming to run; it should be rerun whenever
-#' STR data changes.
-#'
-#' Output:
-#' - `str_processed.qsm` (updated)
-#' - `str_bc_processed.qsm` (updated)
-#' - `FREH_model.qsm`
-#'
-#' Script dependencies:
-#' - `12_str_processing.R`
-#'
-#' External dependencies:
-#' - None
+#### 04 FREH MODEL #############################################################
 
 source("R/01_startup.R")
 library(caret)
@@ -20,7 +6,7 @@ library(caret)
 
 # Load data ---------------------------------------------------------------
 
-qload("output/data_processed.qsm", nthreads = availableCores())
+qload("output/data/data_processed.qsm", nthreads = availableCores())
 
 
 # Prepare daily files -----------------------------------------------------
@@ -47,8 +33,7 @@ monthly <-
   mutate(FREH = if_else(is.na(FREH), FALSE, FREH)) %>%
   left_join(select(property, property_ID, created),
             by = "property_ID") %>%
-  # Trim listings to the start of the month--can later test if the extra
-  # complexity produces meaningful model improvement
+  # Trim listings to the start of the month
   mutate(created = if_else(day(created) == 1, created,
                            floor_date(created, "month") %m+% months(1))) %>%
   filter(date >= created) %>%
@@ -128,7 +113,7 @@ model_3_test <- glm(FREH ~ R_3 + AR_3 + month, data = train_data_3,
 probabilities_3 <- model_3_test %>% predict(test_data_3, type = "response")
 predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 mean(predicted_classes_3 == test_data_3$FREH)
-# Outcome: 0.795
+# Outcome: 0.790
 
 # One model per tier
 map(set_names(unique(train_data_3$tier)), ~{
@@ -159,6 +144,5 @@ map(set_names(unique(train_data_3$tier)), ~{
 qsavem(property, daily, GH, file = "output/data/data_processed.qsm",
        nthreads = availableCores())
 
-qsavem(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
-       model_3, model_3_results, file = "output/data/FREH_model.qsm",
-       nthreads = availableCores())
+qsavem(FREH, monthly, after_one_year, model_3, model_3_results, 
+       file = "output/data/FREH_model.qsm", nthreads = availableCores())

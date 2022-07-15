@@ -63,20 +63,36 @@ housing_loss <-
   mutate(`Listing type` = factor(`Listing type`, 
                                  levels = c("Private room", "Entire home/apt")))  
 
-freh_2021 <- 
+freh_2022 <- 
   daily |> 
-  filter(housing, date == "2021-12-01") |> 
+  filter(housing, date == "2022-04-01") |> 
   summarize(FREH = sum(FREH_3)) |> 
   pull(FREH) |> 
   scales::comma(10)
 
-gh_units_2021 <- 
+gh_units_2022 <- 
   GH |> 
   st_drop_geometry() |> 
-  filter(date == "2021-12-31", status != "B") |> 
+  filter(date == "2022-04-30", status != "B") |> 
   summarize(units = sum(housing_units)) |> 
   pull(units) |> 
   scales::comma(10)
+
+housing_loss_2022 <- 
+  housing_loss |> 
+  filter(tier == "All", date == "2022-04-01") |> 
+  pull(`Housing units`) |> 
+  sum() |> 
+  scales::comma(10)
+
+housing_loss_change_pct_2022 <- 
+  housing_loss |> 
+  filter(tier == "All", year(date) %in% 2021:2022, month(date) == 4) |> 
+  group_by(year = year(date)) |> 
+  summarize(units = sum(`Housing units`)) |> 
+  summarize(pct = (max(units) - min(units)) / min(units)) |> 
+  pull() |> 
+  scales::percent(0.1)
 
 housing_loss_2021 <- 
   housing_loss |> 
@@ -253,21 +269,21 @@ housing_loss_daily_model <-
   bind_rows(filter(housing_loss_daily_model, tier != "All")) |> 
   mutate(units_trend = if_else(date >= "2020-03-01", units_trend, NA_real_))
 
-housing_loss_cc_end_2021 <- 
+housing_loss_cc_end_2022 <- 
   housing_loss_monthly_decay |> 
-  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  filter(tier == "CC", yearmon == yearmonth("2022 Apr")) |> 
   pull(units) |> 
   scales::comma(10)
 
-housing_loss_cc_trend_end_2021 <- 
+housing_loss_cc_trend_end_2022 <- 
   housing_loss_monthly_decay |> 
-  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  filter(tier == "CC", yearmon == yearmonth("2022 Apr")) |> 
   pull(units_trend_month) |> 
   scales::comma(10)
 
-housing_loss_cc_dif_pct_end_2021 <- 
+housing_loss_cc_dif_pct_end_2022 <- 
   housing_loss_monthly_decay |> 
-  filter(tier == "CC", yearmon == yearmonth("2021 Dec")) |> 
+  filter(tier == "CC", yearmon == yearmonth("2022 Apr")) |> 
   summarize(dif = units_trend_month / units - 1) |> 
   pull(dif) |> 
   scales::percent(0.1)
@@ -353,6 +369,60 @@ model_iv_coef_dollar <- scales::dollar(model$coefficients[["iv"]], 0.01)
 model_year_coef_dollar <- scales::dollar(model$coefficients[["year"]], 0.01)
 model_renter_coef_dollar <- scales::dollar(model$coefficients[["renter_pct"]], 
                                            0.01)
+
+rent_change_table_raw <- 
+  cmhc_str |> 
+  mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
+  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
+            by = c("neighbourhood" = "cmhc_zone")) |> 
+  filter(!is.na(tier)) |> 
+  select(neighbourhood, tier, year, total_rent, iv, less_rent, renters) |> 
+  arrange(neighbourhood, year) |> 
+  group_by(neighbourhood) |> 
+  mutate(rent_change = slide_dbl(total_rent, ~.x[2] - .x[1], .before = 1,
+                                 .complete = TRUE),
+         str_change = slide_dbl(less_rent, ~.x[2] - .x[1], .before = 1,
+                                .complete = TRUE),
+         str_incr = str_change / rent_change) |> 
+  ungroup()
+
+rent_change_table_raw <- 
+  rent_change_table_raw |> 
+  mutate(tier = "All") |> 
+  bind_rows(rent_change_table_raw)
+
+rent_change_table <- 
+  rent_change_table_raw |> 
+  mutate(year = case_when(year %in% 1:3 ~ "2017_2019",
+                          year == 4 ~ "2020")) |> 
+  filter(!is.na(year)) |> 
+  group_by(year, tier) |> 
+  summarize(
+    med_rent = median(rent_change, na.rm = TRUE),
+    med_str = median(str_change, na.rm = TRUE),
+    med_incr = median(str_incr, na.rm = TRUE),
+    mean_rent = mean(rent_change, na.rm = TRUE),
+    mean_str = mean(str_change, na.rm = TRUE),
+    mean_incr = mean(str_incr, na.rm = TRUE),
+    str_incr = sum(str_change * renters, na.rm = TRUE) / 
+      sum(rent_change * renters, na.rm = TRUE),
+    .groups = "drop")
+
+rent_change_table_year <- 
+  rent_change_table_raw |> 
+  group_by(year, tier) |> 
+  summarize(
+    med_rent = median(rent_change, na.rm = TRUE),
+    med_str = median(str_change, na.rm = TRUE),
+    med_incr = median(str_incr, na.rm = TRUE),
+    mean_rent = mean(rent_change, na.rm = TRUE),
+    mean_str = mean(str_change, na.rm = TRUE),
+    mean_incr = mean(str_incr, na.rm = TRUE),
+    str_incr = sum(str_change * renters, na.rm = TRUE) / 
+      sum(rent_change * renters, na.rm = TRUE),
+    .groups = "drop") |> 
+  filter(year != 0) |> 
+  mutate(year = 2016 + year, raw_rent = med_rent - med_str)
 
 
 # Figure 9 ----------------------------------------------------------------
@@ -545,60 +615,6 @@ rent_str_2019 <-
 
 rent_str_pct_2019 <- (rent_str_2019 / rent_2019) |> scales::percent(0.1)
 
-rent_change_table_raw <- 
-  cmhc_str |> 
-  mutate(less_rent = iv * model$coefficients[["iv"]]) |> 
-  left_join(select(st_drop_geometry(cmhc_zones), cmhc_zone, renters), 
-            by = c("neighbourhood" = "cmhc_zone")) |> 
-  filter(!is.na(tier)) |> 
-  select(neighbourhood, tier, year, total_rent, iv, less_rent, renters) |> 
-  arrange(neighbourhood, year) |> 
-  group_by(neighbourhood) |> 
-  mutate(rent_change = slide_dbl(total_rent, ~.x[2] - .x[1], .before = 1,
-                                 .complete = TRUE),
-         str_change = slide_dbl(less_rent, ~.x[2] - .x[1], .before = 1,
-                                .complete = TRUE),
-         str_incr = str_change / rent_change) |> 
-  ungroup()
-
-rent_change_table_raw <- 
-  rent_change_table_raw |> 
-  mutate(tier = "All") |> 
-  bind_rows(rent_change_table_raw)
-
-rent_change_table <- 
-  rent_change_table_raw |> 
-  mutate(year = case_when(year %in% 1:3 ~ "2017_2019",
-                          year == 4 ~ "2020")) |> 
-  filter(!is.na(year)) |> 
-  group_by(year, tier) |> 
-  summarize(
-    med_rent = median(rent_change, na.rm = TRUE),
-    med_str = median(str_change, na.rm = TRUE),
-    med_incr = median(str_incr, na.rm = TRUE),
-    mean_rent = mean(rent_change, na.rm = TRUE),
-    mean_str = mean(str_change, na.rm = TRUE),
-    mean_incr = mean(str_incr, na.rm = TRUE),
-    str_incr = sum(str_change * renters, na.rm = TRUE) / 
-      sum(rent_change * renters, na.rm = TRUE),
-    .groups = "drop")
-
-rent_change_table_year <- 
-  rent_change_table_raw |> 
-  group_by(year, tier) |> 
-  summarize(
-    med_rent = median(rent_change, na.rm = TRUE),
-    med_str = median(str_change, na.rm = TRUE),
-    med_incr = median(str_incr, na.rm = TRUE),
-    mean_rent = mean(rent_change, na.rm = TRUE),
-    mean_str = mean(str_change, na.rm = TRUE),
-    mean_incr = mean(str_incr, na.rm = TRUE),
-    str_incr = sum(str_change * renters, na.rm = TRUE) / 
-      sum(rent_change * renters, na.rm = TRUE),
-    .groups = "drop") |> 
-  filter(year != 0) |> 
-  mutate(year = 2016 + year, raw_rent = med_rent - med_str)
-
 str_incr_2017_2019 <- 
   rent_change_table |> 
   filter(tier == "All", year == "2017_2019") |> 
@@ -643,7 +659,7 @@ str_incr_month_2020 <-
 # Integrate forecast into daily data
 housing_loss_daily_model_2023 <-
   expand.grid(unique(housing_loss_daily_model$tier), 
-            as.Date("2022-04-01"):as.Date("2023-12-31")) |> 
+            as.Date("2022-05-01"):as.Date("2023-12-31")) |> 
   set_names(c("tier", "date")) |> 
   as_tibble() |> 
   mutate(date = as.Date(date, origin = "1970-01-01")) |> 
@@ -724,7 +740,7 @@ rent_total_2021_2023 <-
                 .groups = "drop")) |> 
   group_by(tier) |> 
   summarize(dif = (sum(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE))) |> 
-  mutate(rent_inc = dif * model$coefficients[["iv"]] * 100) |> 
+  mutate(rent_inc = dif * model$coefficients[["iv"]] * 100 * 12) |> 
   filter(tier == "All") |> 
   pull(rent_inc) |> 
   scales::dollar(0.1, scale = 1/1000000, suffix = " million")
@@ -791,11 +807,12 @@ ggsave("output/figure_12.png", fig_12, width = 9, height = 5)
   
 # Save output -------------------------------------------------------------
 
-qs::qsavem(housing_loss, freh_2021, gh_units_2021, housing_loss_2021,
+qs::qsavem(housing_loss, freh_2022, gh_units_2022, housing_loss_2022, 
+           housing_loss_change_pct_2022, housing_loss_2021,
            active_decline_pct_2019_2021, housing_loss_2019,
            housing_loss_decline_pct_2019_2021, housing_loss_daily_model,
-           housing_loss_cc_end_2021, housing_loss_cc_trend_end_2021,
-           housing_loss_cc_dif_pct_end_2021, rent_tier, cmhc, cmhc_str,
+           housing_loss_cc_end_2022, housing_loss_cc_trend_end_2022,
+           housing_loss_cc_dif_pct_end_2022, rent_tier, cmhc, cmhc_str,
            model, model_iv_coef_dollar, model_year_coef_dollar, 
            model_renter_coef_dollar, rent_2016_2021_dollar,
            rent_str_pct_2016_2021, overpaid_2016_2021, rent_str_pct_2019,

@@ -8,6 +8,7 @@ library(feasts)
 library(fable)
 
 qs::qload("output/data/data_processed.qsm", nthreads = future::availableCores())
+qs::qload("output/data/geometry.qsm", nthreads = future::availableCores())
 
 col_palette <-
   c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
@@ -123,6 +124,23 @@ rev_avg_change_pct <- ((rev_host_2019$avg - rev_host_2021$avg) /
 
 rev_med_change_pct <- ((rev_host_2019$med - rev_host_2021$med) / 
   rev_host_2019$med) |> 
+  scales::percent(0.1)
+
+active_2022 <- 
+  daily |> 
+  filter(housing, date >= "2022-04-01", status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(10)
+
+active_change_pct_2022 <- 
+  daily |> 
+  filter(housing, year(date) %in% 2021:2022, month(date) == 4, 
+         status %in% c("A", "R")) |> 
+  count(year = year(date)) |> 
+  summarize(pct = (max(n) - min(n)) / min(n)) |> 
+  pull() |> 
   scales::percent(0.1)
 
 active_daily_tiers <- 
@@ -803,11 +821,11 @@ qs::qsavem(active_all_avg_2021, active_non_housing_2021, active_avg_2021,
            hosts_avg_2021, rev_total_2021, rev_avg_2021, rev_med_2021,
            active_avg_2019, active_change_pct, hosts_avg_2019, hosts_change_pct,
            rev_total_2019, rev_change_pct, rev_avg_2019, rev_med_2019,
-           rev_avg_change_pct, rev_med_change_pct, active_daily_tiers,
-           eh_pct_2021, eh_pct_2019, revenue_colour, host_deciles,
-           host_top_10_pct, host_top_1_pct, host_top_1_n, ml_active,
-           ml_pct_2021, ml_rev_pct_2021, daily_variation,
-           active_change_pct_2018, active_change_pct_2019, 
+           rev_avg_change_pct, rev_med_change_pct, active_2022, 
+           active_change_pct_2022, active_daily_tiers, eh_pct_2021, eh_pct_2019, 
+           revenue_colour, host_deciles, host_top_10_pct, host_top_1_pct, 
+           host_top_1_n, ml_active, ml_pct_2021, ml_rev_pct_2021, 
+           daily_variation, active_change_pct_2018, active_change_pct_2019, 
            active_change_pct_2020, active_change_pct_2021, 
            reservations_and_prices, covid_res_dif, covid_res_total, 
            covid_res_pct, covid_res_trend, covid_cc_res_pct, covid_res_res_pct,
