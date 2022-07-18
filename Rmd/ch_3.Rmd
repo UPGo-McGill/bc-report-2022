@@ -15,9 +15,9 @@ library(sf)
 library(slider)
 library(patchwork)
 
-qs::qload("output/data/ch_3.qsm")
-qs::qload("output/data/geometry.qsm")
-qs::qload("output/data/model_chapter.qsm")
+qs::qload(here::here("output/data/ch_3.qsm"))
+qs::qload(here::here("output/data/geometry.qsm"))
+qs::qload(here::here("output/data/model_chapter.qsm"))
 
 col_palette <-
   c("#B8D6BE", "#73AE80", "#B5C0DA", "#6C83B5", "#2A5A5B", "#B58A6C", "#5B362A",
