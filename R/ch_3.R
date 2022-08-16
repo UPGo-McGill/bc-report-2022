@@ -70,6 +70,24 @@ daily_V <-
   daily |> 
   filter(property_ID %in% property_V_ID)
 
+active_apr_2022_V <- 
+  daily_V |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_V <- 
+  daily_V |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_V <- 
   daily_V |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -859,6 +877,24 @@ daily_VC <-
   daily |> 
   filter(property_ID %in% property_VC_ID)
 
+active_apr_2022_VC <- 
+  daily_VC |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_VC <- 
+  daily_VC |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_VC <- 
   daily_VC |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -1082,13 +1118,22 @@ covid_res_pct_VC <-
                                         parse_number(covid_res_total_VC))} |> 
   scales::percent(0.1)
 
-covid_price_pct_VC <-
+covid_price_pct_2021_VC <-
   reservations_and_prices_VC |> 
-  filter(date >= "2020-03-01") |> 
+  filter(date >= "2020-03-01", year(date) <= 2021) |> 
   summarize(dif = sum(price) / sum(price_trend) - 1) |> 
   pull(dif) |> 
   abs() |> 
   scales::percent(0.1)
+
+covid_price_pct_2022_VC <-
+  reservations_and_prices_VC |> 
+  filter(year(date) == 2022) |> 
+  summarize(dif = sum(price) / sum(price_trend) - 1) |> 
+  pull(dif) |> 
+  abs() |> 
+  scales::percent(0.1)
+
 
 # Get daily housing loss
 housing_loss_daily_VC <- 
@@ -1308,7 +1353,7 @@ rent_inc_monthly_2021_2023_VC <-
   left_join(
     housing_loss_daily_model_VC |> 
       filter((date == "2023-12-31" | date == "2022-04-30")) |> 
-      group_by(tier = "CMA") |> 
+      group_by(tier = "CC") |> 
       summarize(units = units[1], units_trend = units_trend[2], 
                 .groups = "drop")) |> 
   group_by(tier) |> 
@@ -1571,6 +1616,24 @@ property_R <-
 daily_R <- 
   daily |> 
   filter(property_ID %in% property_R_ID)
+
+active_apr_2022_R <- 
+  daily_R |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_R <- 
+  daily_R |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
 
 active_avg_2021_R <- 
   daily_R |> 
@@ -2284,6 +2347,24 @@ daily_N <-
   daily |> 
   filter(property_ID %in% property_N_ID)
 
+active_apr_2022_N <- 
+  daily_N |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_N <- 
+  daily_N |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_N <- 
   daily_N |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -2949,6 +3030,24 @@ daily_PQ <-
   daily |> 
   filter(property_ID %in% property_PQ_ID)
 
+active_apr_2022_PQ <- 
+  daily_PQ |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_PQ <- 
+  daily_PQ |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_PQ <- 
   daily_PQ |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -3597,6 +3696,24 @@ property_K <-
 daily_K <- 
   daily |> 
   filter(property_ID %in% property_K_ID)
+
+active_apr_2022_K <- 
+  daily_K |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_K <- 
+  daily_K |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
 
 active_avg_2021_K <- 
   daily_K |> 
@@ -4273,6 +4390,24 @@ daily_RS <-
   daily |> 
   filter(property_ID %in% property_RS_ID)
 
+active_apr_2022_RS <- 
+  daily_RS |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_RS <- 
+  daily_RS |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_RS <- 
   daily_RS |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -4504,9 +4639,9 @@ covid_price_pct_RS <-
   abs() |> 
   scales::percent(0.1)
 
-covid_price_pct_2021_RS <-
+covid_price_pct_2022_RS <-
   reservations_and_prices_RS |> 
-  filter(date >= "2021-04-01", date <= "2021-09-30") |> 
+  filter(date >= "2022-01-01") |> 
   summarize(dif = sum(price) / sum(price_trend) - 1) |> 
   pull(dif) |> 
   abs() |> 
@@ -4794,6 +4929,24 @@ daily_F <-
   daily |> 
   filter(property_ID %in% property_F_ID)
 
+active_apr_2022_F <- 
+  daily_F |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_F <- 
+  daily_F |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
+
 active_avg_2021_F <- 
   daily_F |> 
   filter(year(date) == 2021, status %in% c("A", "R")) |> 
@@ -5025,9 +5178,9 @@ covid_price_pct_F <-
   abs() |> 
   scales::percent(0.1)
 
-covid_price_pct_2021_F <-
+covid_price_pct_2022_F <-
   reservations_and_prices_F |> 
-  filter(date >= "2021-04-01", date <= "2021-09-30") |> 
+  filter(date >= "2022-01-01") |> 
   summarize(dif = sum(price) / sum(price_trend) - 1) |> 
   pull(dif) |> 
   abs() |> 
@@ -5314,6 +5467,24 @@ property_S <-
 daily_S <- 
   daily |> 
   filter(property_ID %in% property_S_ID)
+
+active_apr_2022_S <- 
+  daily_S |> 
+  filter(year(date) == 2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  pull(n) |> 
+  mean() |> 
+  scales::comma(1)
+
+active_change_2021_2022_S <- 
+  daily_S |> 
+  filter(year(date) %in% 2021:2022, month(date) == 4, status %in% c("A", "R")) |> 
+  count(date) |> 
+  group_by(year = year(date)) |> 
+  summarize(n = mean(n)) |> 
+  summarize(dif = (n[2] - n[1]) / n[1]) |> 
+  pull() |> 
+  scales::percent(0.1)
 
 active_avg_2021_S <- 
   daily_S |> 
@@ -5949,7 +6120,8 @@ ggsave("output/figure_44.png", fig_44, width = 9, height = 4)
 
 # Save output -------------------------------------------------------------
 
-qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
+qs::qsavem(property_V, active_apr_2022_V, active_change_2021_2022_V, 
+           active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            hosts_avg_2019_V, rev_total_2021_V, rev_total_2019_V, rev_avg_2021_V,
            rev_avg_2019_V, rev_med_2021_V, rev_med_2019_V, active_daily_V,
            listings_pct_V, streets_V, streets_V_2, reservations_and_prices_V, 
@@ -5961,19 +6133,22 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            rent_inc_annual_2021_2023_V, rent_change_2023_table_V,
            first_photo_pair, second_photo_pair, titles,
            
-           property_VC, active_avg_2021_VC, active_avg_2019_VC, 
+           property_VC, active_apr_2022_VC, active_change_2021_2022_VC,
+           active_avg_2021_VC, active_avg_2019_VC, 
            hosts_avg_2021_VC, hosts_avg_2019_VC, rev_total_2021_VC, 
            rev_total_2019_VC, rev_avg_2021_VC, rev_avg_2019_VC, rev_med_2021_VC, 
            rev_med_2019_VC, active_daily_VC, listings_pct_VC, streets_VC, 
            streets_VC_2, reservations_and_prices_VC, covid_res_pct_VC, 
-           covid_price_pct_VC, commercial_pct_VC, housing_loss_daily_model_VC, 
+           covid_price_pct_2021_VC, covid_price_pct_2022_VC, commercial_pct_VC, 
+           housing_loss_daily_model_VC, 
            overpaid_2016_2021_VC, rent_str_pct_2019_VC, str_incr_2017_2019_VC, 
            rent_month_2017_2019_VC, str_incr_month_2017_2019_VC, 
            str_incr_2020_VC, housing_loss_2023_VC, 
            housing_loss_change_2021_2023_VC, rent_inc_monthly_2021_2023_VC, 
            rent_inc_annual_2021_2023_VC, rent_change_2023_table_VC,
            
-           property_R, active_avg_2021_R, active_avg_2019_R, hosts_avg_2021_R,
+           property_R, active_apr_2022_R, active_change_2021_2022_R, 
+           active_avg_2021_R, active_avg_2019_R, hosts_avg_2021_R,
            hosts_avg_2019_R, rev_total_2021_R, rev_total_2019_R, rev_avg_2021_R,
            rev_avg_2019_R, rev_med_2021_R, rev_med_2019_R, active_daily_R,
            listings_pct_R, streets_R, streets_R_2, reservations_and_prices_R, 
@@ -5984,7 +6159,8 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            housing_loss_change_2021_2023_R, rent_inc_monthly_2021_2023_R, 
            rent_inc_annual_2021_2023_R, rent_change_2023_table_R,
            
-           property_N, active_avg_2021_N, active_avg_2019_N, hosts_avg_2021_N,
+           property_N, active_apr_2022_N, active_change_2021_2022_N,
+           active_avg_2021_N, active_avg_2019_N, hosts_avg_2021_N,
            hosts_avg_2019_N, rev_total_2021_N, rev_total_2019_N, rev_avg_2021_N,
            rev_avg_2019_N, rev_med_2021_N, rev_med_2019_N, active_daily_N,
            listings_pct_N, streets_N, streets_N_2, reservations_and_prices_N, 
@@ -5995,7 +6171,8 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            housing_loss_change_2021_2023_N, rent_inc_monthly_2021_2023_N, 
            rent_inc_annual_2021_2023_N,
 
-           property_PQ, active_avg_2021_PQ, active_avg_2019_PQ, 
+           property_PQ, active_apr_2022_PQ, active_change_2021_2022_PQ, 
+           active_avg_2021_PQ, active_avg_2019_PQ, 
            hosts_avg_2021_PQ, hosts_avg_2019_PQ, rev_total_2021_PQ, 
            rev_total_2019_PQ, rev_avg_2021_PQ, rev_avg_2019_PQ, rev_med_2021_PQ, 
            rev_med_2019_PQ, active_daily_PQ, listings_pct_PQ, streets_PQ, 
@@ -6007,7 +6184,8 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            housing_loss_change_2021_2023_PQ, rent_inc_monthly_2021_2023_PQ, 
            rent_inc_annual_2021_2023_PQ,
            
-           property_K, active_avg_2021_K, active_avg_2019_K, hosts_avg_2021_K,
+           property_K, active_apr_2022_K, active_change_2021_2022_K, 
+           active_avg_2021_K, active_avg_2019_K, hosts_avg_2021_K,
            hosts_avg_2019_K, rev_total_2021_K, rev_total_2019_K, rev_avg_2021_K,
            rev_avg_2019_K, rev_med_2021_K, rev_med_2019_K, active_daily_K,
            listings_pct_K, streets_K, streets_K_2, reservations_and_prices_K, 
@@ -6018,22 +6196,25 @@ qs::qsavem(property_V, active_avg_2021_V, active_avg_2019_V, hosts_avg_2021_V,
            housing_loss_change_2021_2023_K, rent_inc_monthly_2021_2023_K, 
            rent_inc_annual_2021_2023_K,
 
-           property_RS, active_avg_2021_RS, active_avg_2019_RS, 
+           property_RS, active_apr_2022_RS, active_change_2021_2022_RS,
+           active_avg_2021_RS, active_avg_2019_RS, 
            hosts_avg_2021_RS, hosts_avg_2019_RS, rev_total_2021_RS, 
            rev_total_2019_RS, rev_avg_2021_RS, rev_avg_2019_RS, rev_med_2021_RS, 
            rev_med_2019_RS, active_daily_RS, listings_pct_RS, streets_RS, 
            streets_RS_2, reservations_and_prices_RS, covid_res_pct_RS, 
-           covid_price_pct_RS, covid_price_pct_2021_RS, commercial_pct_RS, 
+           covid_price_pct_RS, covid_price_pct_2022_RS, commercial_pct_RS, 
            housing_loss_daily_model_RS,
            
-           property_F, active_avg_2021_F, active_avg_2019_F, hosts_avg_2021_F,
+           property_F, active_apr_2022_F, active_change_2021_2022_F,
+           active_avg_2021_F, active_avg_2019_F, hosts_avg_2021_F,
            hosts_avg_2019_F, rev_total_2021_F, rev_total_2019_F, rev_avg_2021_F,
            rev_avg_2019_F, rev_med_2021_F, rev_med_2019_F, active_daily_F,
            listings_pct_F, streets_F, streets_F_2, reservations_and_prices_F, 
-           covid_res_pct_F, covid_price_pct_F, covid_price_pct_2021_F, 
+           covid_res_pct_F, covid_price_pct_F, covid_price_pct_2022_F, 
            commercial_pct_F, housing_loss_daily_model_F,
 
-           property_S, active_avg_2021_S, active_avg_2019_S, hosts_avg_2021_S,
+           property_S, active_apr_2022_S, active_change_2021_2022_S,
+           active_avg_2021_S, active_avg_2019_S, hosts_avg_2021_S,
            hosts_avg_2019_S, rev_total_2021_S, rev_total_2019_S, rev_avg_2021_S,
            rev_avg_2019_S, rev_med_2021_S, rev_med_2019_S, active_daily_S,
            listings_pct_S, streets_S, streets_S_2, reservations_and_prices_S, 

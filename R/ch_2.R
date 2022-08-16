@@ -348,8 +348,6 @@ fig_8 <-
 ggsave("output/figure_8.png", fig_8, width = 9, height = 5)
 
 
-
-
 # The impact of dedicated STRs on residential rents in BC -----------------
 
 # A regression model of dedicated STRs and residential rent ---------------
@@ -696,8 +694,8 @@ housing_loss_2023 <-
 
 housing_loss_change_2021_2023 <-
   housing_loss_daily_model_2023 |> 
-  filter((date == "2023-12-31" | date == "2019-12-31"), tier == "All") |> 
-  summarize(dif = (sum(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE)) / 
+  filter((date == "2023-12-31" | date == "2022-04-30"), tier == "All") |> 
+  summarize(dif = (max(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE)) / 
               sum(units, na.rm = TRUE)) |> 
   pull(dif) |> 
   scales::percent(0.1)
@@ -709,13 +707,13 @@ rent_inc_monthly_2021_2023 <-
   summarize(renters = sum(renters)) |> 
   left_join(
     housing_loss_daily_model_2023 |> 
-      filter((date == "2023-12-31" | date == "2019-12-31")) |> 
+      filter((date == "2023-12-31" | date == "2022-04-30")) |> 
       mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
       group_by(tier, date) |> 
       summarize(units = sum(units), units_trend = sum(units_trend), 
                 .groups = "drop")) |> 
   group_by(tier) |> 
-  summarize(dif = (sum(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE)) /
+  summarize(dif = (max(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE)) /
               mean(renters)) |> 
   mutate(rent_inc = dif * model$coefficients[["iv"]] * 100) |> 
   filter(tier == "All") |> 
@@ -733,13 +731,13 @@ rent_total_2021_2023 <-
   summarize(renters = sum(renters)) |> 
   left_join(
     housing_loss_daily_model_2023 |> 
-      filter((date == "2023-12-31" | date == "2019-12-31")) |> 
+      filter((date == "2023-12-31" | date == "2022-04-30")) |> 
       mutate(tier = if_else(tier %in% c("NU", "RES"), "RES/NU", tier)) |> 
       group_by(tier, date) |> 
       summarize(units = sum(units), units_trend = sum(units_trend), 
                 .groups = "drop")) |> 
   group_by(tier) |> 
-  summarize(dif = (sum(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE))) |> 
+  summarize(dif = (max(units_trend, na.rm = TRUE) - sum(units, na.rm = TRUE))) |> 
   mutate(rent_inc = dif * model$coefficients[["iv"]] * 100 * 12) |> 
   filter(tier == "All") |> 
   pull(rent_inc) |> 
